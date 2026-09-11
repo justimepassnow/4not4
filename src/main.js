@@ -279,17 +279,15 @@ async function simulateUploadWithGatewayTimeout(filename) {
 
     gatewayTimeoutCard.style.display = 'none';
     loadingContent.style.display = 'flex';
-    loadingText.textContent = 'Reconnecting to KTU Valuation gateway (camp node)...';
-    uploadProgressBarContainer.style.display = 'block';
+    loadingOverlay.style.display = 'none';
+    uploadProgressBarContainer.style.display = 'none';
+    setStatus('Upload dropped: 504 Gateway Timeout. Please re-upload your answer sheet bundle.', true);
 
-    await new Promise(r => setTimeout(r, 180));
-    uploadProgressFill.style.width = '99%';
-    uploadProgressPct.textContent = '99%';
-    await new Promise(r => setTimeout(r, 180));
-    uploadProgressFill.style.width = '100%';
-    uploadProgressPct.textContent = '100%';
-    loadingText.textContent = 'Upload complete! Ingesting answer sheet...';
-    await new Promise(r => setTimeout(r, 200));
+    setTimeout(() => {
+      imageUploadInput.click();
+    }, 120);
+
+    return false;
   }
 
   uploadProgressBarContainer.style.display = 'none';
