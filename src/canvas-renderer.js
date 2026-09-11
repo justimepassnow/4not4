@@ -26,30 +26,59 @@ export function renderEvaluationCanvas({
   // 2. Render OCR Bounding Boxes Layer
   if (showBoxes && questions) {
     for (const q of questions) {
-      // Draw Question Anchor (Blue)
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(q.anchor.x, q.anchor.y, q.anchor.width, q.anchor.height);
+      // Draw Question Anchor & Question Text in Blue
+      if (q.qAnchor) {
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(q.qAnchor.x, q.qAnchor.y, q.qAnchor.width, q.qAnchor.height);
 
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
-      ctx.fillRect(q.anchor.x, Math.max(0, q.anchor.y - 20), 45, 20);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(q.qNumber, q.anchor.x + 6, Math.max(14, q.anchor.y - 5));
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.9)';
+        ctx.fillRect(q.qAnchor.x, Math.max(0, q.qAnchor.y - 20), 88, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`${q.qNumber}: QUESTION`, q.qAnchor.x + 4, Math.max(14, q.qAnchor.y - 5));
+      }
 
-      // Draw Answer Boxes (Green or Amber for Diagrams)
+      // Draw Question Text lines (subtle dashed blue outline)
+      if (q.questionBoxes && q.questionBoxes.length > 0) {
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+        ctx.setLineDash([4, 3]);
+        ctx.lineWidth = 1.5;
+        for (const qb of q.questionBoxes) {
+          if (qb !== q.qAnchor) {
+            ctx.strokeRect(qb.x, qb.y, qb.width, qb.height);
+          }
+        }
+        ctx.setLineDash([]);
+      }
+
+      // Draw Answer Start Anchor (Ans marker) in Green
+      if (q.ansAnchor) {
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(q.ansAnchor.x, q.ansAnchor.y, q.ansAnchor.width, q.ansAnchor.height);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+        ctx.fillRect(q.ansAnchor.x, Math.max(0, q.ansAnchor.y - 20), 75, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`${q.qNumber}: ANS`, q.ansAnchor.x + 4, Math.max(14, q.ansAnchor.y - 5));
+      }
+
+      // Draw Answer Content Boxes (Green, or Amber for Diagrams/Tables)
       for (const box of q.boxes) {
-        const isDiagram = box.width > 90 && box.height > 60;
+        if (box === q.ansAnchor) continue;
+        const isDiagram = box.width > 90 && box.height > 55;
         if (isDiagram) {
           ctx.strokeStyle = '#f59e0b';
           ctx.lineWidth = 2.5;
           ctx.strokeRect(box.x, box.y, box.width, box.height);
 
           ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
-          ctx.fillRect(box.x, Math.max(0, box.y - 18), 105, 18);
+          ctx.fillRect(box.x, Math.max(0, box.y - 18), 125, 18);
           ctx.fillStyle = '#000000';
           ctx.font = 'bold 10px sans-serif';
-          ctx.fillText('POSSIBLE DIAGRAM', box.x + 4, Math.max(12, box.y - 4));
+          ctx.fillText('DIAGRAM / TABLE (+3.5)', box.x + 4, Math.max(12, box.y - 4));
         } else {
           ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
           ctx.lineWidth = 1.5;

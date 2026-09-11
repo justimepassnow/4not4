@@ -60,7 +60,7 @@ export function evaluateBooklet(pagesList, examinerMood) {
         verticalSpan: Math.round(q.verticalSpan),
         diagrams: q.diagramCount,
         hasDiagram: q.diagramCount > 0,
-        anchorY: q.anchor.y
+        anchorY: q.ansAnchor ? q.ansAnchor.y : (q.boxes.length ? q.boxes[0].y : q.anchor.y)
       };
 
       allQuestionsBreakdown.push(item);

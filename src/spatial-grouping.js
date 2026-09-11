@@ -1,76 +1,179 @@
-// Geometric region estimates. The detector does not recognise written numbers.
+// Robust Question vs Answer spatial partitioning and grouping engine
+
 export function groupAnswersByQuestion(boxes, imgWidth, imgHeight) {
-  const empty = { questions: [], pageMetrics: { totalInkArea: 0, pageFillRatio: 0, diagramCount: 0, boxCount: 0 }, ignoredBoxes: [] };
-  if (!(imgWidth > 0 && imgHeight > 0)) return empty;
-  const sorted = (boxes || []).filter(b =>
-    [b.x, b.y, b.width, b.height].every(Number.isFinite) && b.width > 0 && b.height > 0
+  const empty = {
+    questions: [],
+    pageMetrics: { totalInkArea: 0, pageFillRatio: 0, diagramCount: 0, boxCount: 0 },
+    ignoredBoxes: []
+  };
+
+  if (!(imgWidth > 0 && imgHeight > 0) || !boxes || boxes.length === 0) return empty;
+
+  // Filter valid finite boxes and sort top-to-bottom, left-to-right
+  const sorted = boxes.filter(b =>
+    [b.x, b.y, b.width, b.height].every(Number.isFinite) && b.width > 3 && b.height > 3
   ).sort((a, b) => a.y - b.y || a.x - b.x);
+
   if (!sorted.length) return empty;
 
-  // A marker must be compact, wholly in the margin, and near answer content.
-  // This rejects long left-aligned prose, borders, and isolated page numbers.
-  const candidates = sorted.filter(b =>
-    b.x + b.width < imgWidth * 0.22 && b.width < imgWidth * 0.10 &&
-    b.height < imgHeight * 0.055 &&
-    sorted.some(other => other !== b && other.x >= imgWidth * 0.16 &&
-      other.width > imgWidth * 0.15 &&
-      Math.abs(other.y - b.y) < imgHeight * 0.045)
-  );
-  const anchors = [];
-  for (const b of candidates) {
-    if (!anchors.length || b.y - anchors.at(-1).y > imgHeight * 0.04) {
-      anchors.push({ ...b, source: b, inferred: false });
+  // Dynamic Left Margin Threshold (typically ~18% to 22% of image width)
+  const marginThreshold = Math.min(imgWidth * 0.22, 170);
+
+  // 1. Separate margin boxes from main body boxes
+  const marginBoxes = [];
+  const bodyBoxes = [];
+
+  for (const b of sorted) {
+    const isMargin = b.x < marginThreshold && b.x + b.width < marginThreshold + 30 && b.width < imgWidth * 0.25;
+    if (isMargin) {
+      marginBoxes.push(b);
+    } else {
+      bodyBoxes.push(b);
     }
   }
-  // Separate a detached document header from the first marked answer.
-  const firstY = anchors[0]?.y;
-  const ignoredBoxes = firstY === undefined ? [] : sorted.filter(b => b.y + b.height < firstY - imgHeight * 0.04);
-  const ignored = new Set(ignoredBoxes);
-  const markerBoxes = new Set(anchors.map(a => a.source));
-  const bodyBoxes = sorted.filter(b => !ignored.has(b) && !markerBoxes.has(b));
 
-  if (!anchors.length) {
-    // Measure whitespace from the end of preceding content, not from the
-    // previous anchor: a long continuous answer must stay in one region.
-    const heights = sorted.map(b => b.height).sort((a, b) => a - b);
-    const gapThreshold = Math.max(imgHeight * 0.065, heights[Math.floor(heights.length / 2)] * 3);
-    let bottom = -Infinity;
-    for (const b of sorted) {
-      if (b.y - bottom > gapThreshold) {
-        anchors.push({ x: Math.max(0, b.x - 35), y: b.y, width: 28, height: Math.min(25, b.height), inferred: true });
+  // 2. Classify margin boxes into Question Numbers vs "Ans)" Markers
+  // An "Ans)" or "Ans" marker typically has a wider aspect ratio (w/h >= 1.45)
+  // A question number like "1.", "2.", "Q1" is more compact (w/h < 1.45)
+  const classifiedMargin = marginBoxes.map(b => {
+    const aspectRatio = b.width / Math.max(1, b.height);
+    const isAnswerMarker = aspectRatio >= 1.45 || (b.width > 42 && b.height < 35);
+    return { ...b, isAnswerMarker };
+  });
+
+  // 3. Form Question Units from Margin Markers & Body Content
+  // A question unit consists of:
+  // - questionNumberAnchor (e.g. "1.", "2.")
+  // - answerStartAnchor (e.g. "Ans)")
+  // - questionBoundaryY (where question text starts)
+  // - answerBoundaryY (where answer content starts)
+  const questionUnits = [];
+
+  let mIdx = 0;
+  while (mIdx < classifiedMargin.length) {
+    const current = classifiedMargin[mIdx];
+    const next = classifiedMargin[mIdx + 1];
+
+    if (!current.isAnswerMarker) {
+      // Current is Question Number (e.g. "1.")
+      if (next && next.isAnswerMarker && (next.y - current.y < 260)) {
+        // Paired: "1." followed by "Ans)"
+        questionUnits.push({
+          qAnchor: current,
+          ansAnchor: next,
+          qStartY: current.y - 15,
+          ansStartY: next.y - 10
+        });
+        mIdx += 2;
+      } else {
+        // "1." with no explicit "Ans)" in margin; answer starts ~60-80px below question
+        questionUnits.push({
+          qAnchor: current,
+          ansAnchor: null,
+          qStartY: current.y - 15,
+          ansStartY: current.y + Math.max(current.height + 15, 65)
+        });
+        mIdx++;
       }
-      bottom = Math.max(bottom, b.y + b.height);
+    } else {
+      // Current is "Ans)" without preceding question number in margin (like in Image 2)
+      // Check if there is question text in body above this "Ans)"
+      const bodyAbove = bodyBoxes.filter(b => b.y < current.y - 10 && (questionUnits.length === 0 || b.y > questionUnits.at(-1).ansStartY));
+      const qStartY = bodyAbove.length > 0 ? Math.min(...bodyAbove.map(b => b.y)) - 10 : Math.max(0, current.y - 80);
+
+      questionUnits.push({
+        qAnchor: bodyAbove.length > 0 ? bodyAbove[0] : current,
+        ansAnchor: current,
+        qStartY,
+        ansStartY: current.y - 10
+      });
+      mIdx++;
     }
   }
 
-  const assignments = anchors.map(() => []);
-  for (const b of bodyBoxes) {
-    // Small vertical tolerances keep a line with its marker when the detector
-    // places the handwritten number slightly below the line's top edge.
-    let index = 0;
-    for (let i = 1; i < anchors.length; i++) {
-      if (b.y + Math.min(b.height / 2, imgHeight * 0.01) >= anchors[i].y) index = i;
-      else break;
-    }
-    assignments[index].push(b);
+  // Fallback: If no margin marks were detected at all, infer from top of page or large vertical gaps
+  if (questionUnits.length === 0 && bodyBoxes.length > 0) {
+    questionUnits.push({
+      qAnchor: bodyBoxes[0],
+      ansAnchor: null,
+      qStartY: Math.max(0, bodyBoxes[0].y - 15),
+      ansStartY: bodyBoxes[0].y + 70
+    });
   }
-  const questions = anchors.map((anchor, index) => {
-    const assigned = assignments[index];
-    const diagramBoxes = assigned.filter(b => b.width > 90 && b.height > 60);
-    const minY = assigned.length ? Math.min(...assigned.map(b => b.y)) : anchor.y;
-    const maxY = assigned.length ? Math.max(...assigned.map(b => b.y + b.height)) : anchor.y + anchor.height;
+
+  // 4. Partition boxes into Question Text vs Answer Body for each question unit
+  const questions = questionUnits.map((unit, idx) => {
+    const nextUnit = questionUnits[idx + 1];
+    const unitEndBottomY = nextUnit ? nextUnit.qStartY : imgHeight;
+
+    // Question boxes: between unit.qStartY and unit.ansStartY
+    const qBoxes = sorted.filter(b =>
+      b.y >= unit.qStartY - 5 && b.y < unit.ansStartY
+    );
+
+    // Answer boxes: between unit.ansStartY and next question's start
+    const aBoxes = sorted.filter(b =>
+      b.y >= unit.ansStartY && b.y < unitEndBottomY
+    );
+
+    // Detect Diagrams & Tables inside the answer
+    // 1) Large rectangular diagram boxes
+    // 2) Horizontally aligned table row clusters
+    const diagramBoxes = [];
+    const tableBoxes = [];
+
+    for (const b of aBoxes) {
+      const isDiagram = b.width > 90 && b.height > 55;
+      if (isDiagram) {
+        diagramBoxes.push(b);
+      }
+    }
+
+    // Table detection: 3 or more boxes sharing similar Y with distinct X (grid columns)
+    const yBuckets = {};
+    for (const b of aBoxes) {
+      const bucket = Math.round(b.y / 25) * 25;
+      yBuckets[bucket] = (yBuckets[bucket] || 0) + 1;
+    }
+    const tableRows = Object.values(yBuckets).filter(count => count >= 3).length;
+    const isTablePresent = tableRows >= 2;
+
+    const totalDiagrams = diagramBoxes.length + (isTablePresent ? 2 : 0);
+
+    const minY = aBoxes.length ? Math.min(...aBoxes.map(b => b.y)) : unit.ansStartY;
+    const maxY = aBoxes.length ? Math.max(...aBoxes.map(b => b.y + b.height)) : unit.ansStartY + 50;
+    const verticalSpan = Math.max(30, maxY - minY);
+    const inkArea = aBoxes.reduce((sum, b) => sum + (b.width * b.height), 0);
+    const hasMarginBreach = aBoxes.some(b => b.x + b.width > imgWidth * 0.95);
+
     return {
-      qNumber: `R${index + 1}`, anchor, boxes: assigned,
-      verticalSpan: Math.max(20, maxY - minY),
-      inkArea: assigned.reduce((sum, b) => sum + b.width * b.height, 0),
-      diagramCount: diagramBoxes.length, diagramBoxes,
-      hasMarginBreach: assigned.some(b => b.x + b.width > imgWidth * 0.95)
+      qNumber: `Q${idx + 1}`,
+      anchor: unit.qAnchor || unit.ansAnchor,
+      qAnchor: unit.qAnchor,
+      ansAnchor: unit.ansAnchor,
+      questionBoxes: qBoxes,
+      boxes: aBoxes, // The student's actual answer boxes!
+      answerBoxes: aBoxes,
+      verticalSpan,
+      inkArea,
+      diagramCount: totalDiagrams,
+      diagramBoxes,
+      isTablePresent,
+      hasMarginBreach
     };
   });
-  const totalInkArea = sorted.filter(b => !ignored.has(b)).reduce((sum, b) => sum + b.width * b.height, 0);
-  return { questions, ignoredBoxes, pageMetrics: {
-    totalInkArea, pageFillRatio: Math.min(1, totalInkArea / (imgWidth * imgHeight * 0.5)),
-    diagramCount: questions.reduce((sum, q) => sum + q.diagramCount, 0),
-    boxCount: sorted.length - ignoredBoxes.length
-  } };
+
+  const totalInkArea = sorted.reduce((sum, b) => sum + (b.width * b.height), 0);
+  const diagramCount = questions.reduce((sum, q) => sum + q.diagramCount, 0);
+
+  return {
+    questions,
+    ignoredBoxes: [],
+    pageMetrics: {
+      totalInkArea,
+      pageFillRatio: Math.min(1, totalInkArea / (imgWidth * imgHeight * 0.45)),
+      diagramCount,
+      boxCount: sorted.length
+    }
+  };
 }
