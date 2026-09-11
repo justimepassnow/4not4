@@ -53,7 +53,7 @@ export function renderEvaluationCanvas({
       }
 
       // Draw Answer Start Anchor (Ans marker) in Green
-      if (q.ansAnchor) {
+      if (q.ansAnchor && q.ansAnchor !== q.qAnchor) {
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2.5;
         ctx.strokeRect(q.ansAnchor.x, q.ansAnchor.y, q.ansAnchor.width, q.ansAnchor.height);
