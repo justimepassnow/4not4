@@ -60,7 +60,7 @@ async function withBusy(task) {
     pdfNextBtn.disabled = currentPdfPage >= totalPdfPages;
     loadingOverlay.style.display = 'none';
     if (uploadProgressBarContainer) uploadProgressBarContainer.style.display = 'none';
-    if (gatewayTimeoutCard) gatewayTimeoutCard.style.display = 'none';
+    if (gatewayTimeoutScreen) gatewayTimeoutScreen.style.display = 'none';
     if (loadingContent) loadingContent.style.display = 'flex';
   }
 }
@@ -95,8 +95,7 @@ const loadingText = document.querySelector('.loading-text');
 const uploadProgressBarContainer = document.getElementById('uploadProgressBarContainer');
 const uploadProgressFill = document.getElementById('uploadProgressFill');
 const uploadProgressPct = document.getElementById('uploadProgressPct');
-const gatewayTimeoutCard = document.getElementById('gatewayTimeoutCard');
-const retryUploadBtn = document.getElementById('retryUploadBtn');
+const gatewayTimeoutScreen = document.getElementById('gatewayTimeoutScreen');
 const evaluateBtn = document.getElementById('evaluateBtn');
 const evalBtnText = document.getElementById('evalBtnText');
 const toggleBoxes = document.getElementById('toggleBoxes');
@@ -264,21 +263,19 @@ async function simulateUploadWithGatewayTimeout(filename) {
 
   if (triggerTimeout) {
     await new Promise(r => setTimeout(r, 250));
-    loadingContent.style.display = 'none';
-    gatewayTimeoutCard.style.display = 'block';
-
-    await new Promise((resolve) => {
-      const onRetry = () => {
-        retryUploadBtn.removeEventListener('click', onRetry);
-        resolve();
-      };
-      retryUploadBtn.addEventListener('click', onRetry);
-    });
-
-    gatewayTimeoutCard.style.display = 'none';
-    loadingContent.style.display = 'flex';
     loadingOverlay.style.display = 'none';
     uploadProgressBarContainer.style.display = 'none';
+    gatewayTimeoutScreen.style.display = 'flex';
+
+    await new Promise((resolve) => {
+      const onDismiss = () => {
+        gatewayTimeoutScreen.removeEventListener('click', onDismiss);
+        resolve();
+      };
+      gatewayTimeoutScreen.addEventListener('click', onDismiss);
+    });
+
+    gatewayTimeoutScreen.style.display = 'none';
     setStatus('Upload dropped: 504 Gateway Timeout. Please re-upload your answer sheet bundle.', true);
 
     setTimeout(() => {

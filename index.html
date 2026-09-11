@@ -151,13 +151,6 @@
                   <div id="uploadProgressPct" class="upload-progress-pct">0%</div>
                 </div>
               </div>
-              <div id="gatewayTimeoutCard" class="gateway-timeout-box" style="display: none;">
-                <div class="timeout-code">504 Gateway Time-out</div>
-                <div class="timeout-title">error : gateway timeout</div>
-                <p class="timeout-desc">KTU Valuation Server (app.ktu.edu.in) failed to respond while receiving upload bundle.</p>
-                <div class="timeout-sub">Connection dropped at 97% upload completion. Packet lost in transit. Upload session terminated.</div>
-                <button id="retryUploadBtn" class="pill-btn danger-retry-btn">🔄 Re-upload Answer Sheet</button>
-              </div>
             </div>
           </div>
         </div>
@@ -253,6 +246,16 @@
       </aside>
     </main>
     <footer class="app-footer">KTU Valuator 3000 · Satirical campus simulator · Processed in your browser</footer>
+  </div>
+
+  <!-- Full-Screen Raw 504 Gateway Timeout Screen -->
+  <div id="gatewayTimeoutScreen" class="raw-gateway-screen" style="display: none;">
+    <div class="raw-gateway-content">
+      <center><h1 class="raw-gateway-title">504 Gateway Timeout</h1></center>
+      <hr class="raw-gateway-hr">
+      <center><div class="raw-gateway-server">nginx</div></center>
+      <center><p class="raw-gateway-hint">Click anywhere to re-upload answer sheet</p></center>
+    </div>
   </div>
 
   <script type="module" src="./src/main.js"></script>
