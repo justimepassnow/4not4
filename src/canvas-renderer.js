@@ -26,8 +26,18 @@ export function renderEvaluationCanvas({
   // 2. Render OCR Bounding Boxes Layer
   if (showBoxes && questions) {
     for (const q of questions) {
+      // Continuation Badge
+      if (q.isContinuation) {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+        const tagX = Math.max(20, Math.round(w * 0.08));
+        ctx.fillRect(tagX, 20, 180, 22);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`${q.qNumber}: ANSWER`, tagX + 8, 35);
+      }
+
       // Draw Question Anchor & Question Text in Blue
-      if (q.qAnchor) {
+      if (!q.isContinuation && q.qAnchor) {
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 2.5;
         ctx.strokeRect(q.qAnchor.x, q.qAnchor.y, q.qAnchor.width, q.qAnchor.height);
@@ -40,7 +50,7 @@ export function renderEvaluationCanvas({
       }
 
       // Draw Question Text lines (subtle dashed blue outline)
-      if (q.questionBoxes && q.questionBoxes.length > 0) {
+      if (!q.isContinuation && q.questionBoxes && q.questionBoxes.length > 0) {
         ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
         ctx.setLineDash([4, 3]);
         ctx.lineWidth = 1.5;

@@ -26,6 +26,7 @@ export function evaluateBooklet(pagesList, examinerMood) {
   let totalInkArea = 0;
   let totalFillRatioSum = 0;
 
+  let questionSeq = 0;
   for (const p of pagesList) {
     const pageNum = p.pageNumber;
     const { questions, pageMetrics } = p.groupedData || { questions: [], pageMetrics: {} };
@@ -36,6 +37,13 @@ export function evaluateBooklet(pagesList, examinerMood) {
     totalFillRatioSum += pageMetrics?.pageFillRatio || 0;
 
     for (const q of (questions || [])) {
+      if (!q.isContinuation) {
+        questionSeq++;
+        q.qNumber = `Q${questionSeq}`;
+      } else {
+        q.qNumber = `Q${questionSeq || 1} (Cont.)`;
+      }
+
       // 1. Length & Ink factor (Max 6 marks)
       const heightFactor = Math.min(1, q.verticalSpan / 350);
       const inkFactor = Math.min(1, q.inkArea / 25000);
@@ -53,14 +61,15 @@ export function evaluateBooklet(pagesList, examinerMood) {
 
       const item = {
         pageNumber: pageNum,
-        qNumber: pagesList.length > 1 ? `P${pageNum}-${q.qNumber}` : q.qNumber,
+        qNumber: pagesList.length > 1 ? `P${pageNum} - ${q.qNumber}` : q.qNumber,
         originalQNumber: q.qNumber,
+        isContinuation: !!q.isContinuation,
         marks: qMark,
         maxMarks: maxPerQuestion,
         verticalSpan: Math.round(q.verticalSpan),
         diagrams: q.diagramCount,
         hasDiagram: q.diagramCount > 0,
-        anchorY: q.ansAnchor ? q.ansAnchor.y : (q.boxes.length ? q.boxes[0].y : q.anchor.y)
+        anchorY: q.ansAnchor ? q.ansAnchor.y : (q.boxes.length ? q.boxes[0].y : (q.anchor ? q.anchor.y : 100))
       };
 
       allQuestionsBreakdown.push(item);

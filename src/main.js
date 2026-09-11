@@ -190,20 +190,42 @@ async function loadPdfBooklet(fileOrUrl, filename = 'booklet.pdf') {
   }
 }
 
-function switchPdfViewPage(pageNum) {
-  if (!isPdfMode || !bookletPagesCache[pageNum]) return;
-  currentPdfPage = pageNum;
+async function switchPdfViewPage(pageNum) {
+  if (!isPdfMode || !currentPdfDoc) return;
+  currentPdfPage = Math.max(1, Math.min(pageNum, totalPdfPages));
   pdfPageIndicator.textContent = `Page ${currentPdfPage} / ${totalPdfPages}`;
   pdfPrevBtn.disabled = currentPdfPage <= 1;
   pdfNextBtn.disabled = currentPdfPage >= totalPdfPages;
 
-  const pageData = bookletPagesCache[currentPdfPage];
-  currentImage = pageData.canvas;
-  currentGrouped = pageData.groupedData;
-  currentBoxes = pageData.boxes;
+  if (!bookletPagesCache[currentPdfPage]) {
+    loadingOverlay.style.display = 'flex';
+    if (loadingText) loadingText.textContent = `Scrutinizing Page ${currentPdfPage} of ${totalPdfPages}...`;
+    try {
+      const pageCanvas = await renderPdfPage(currentPdfDoc, currentPdfPage, 1.5);
+      const boxes = await detectText(pageCanvas);
+      const grouped = groupAnswersByQuestion(boxes, pageCanvas.width, pageCanvas.height);
+      bookletPagesCache[currentPdfPage] = {
+        pageNumber: currentPdfPage,
+        canvas: pageCanvas,
+        groupedData: grouped,
+        boxes
+      };
+      const allEvaluated = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
+      currentResult = evaluateBooklet(allEvaluated, currentMood);
+    } finally {
+      loadingOverlay.style.display = 'none';
+    }
+  }
 
-  redrawCanvas();
-  renderMarksheet(currentResult);
+  const pageData = bookletPagesCache[currentPdfPage];
+  if (pageData) {
+    currentImage = pageData.canvas;
+    currentGrouped = pageData.groupedData;
+    currentBoxes = pageData.boxes;
+
+    redrawCanvas();
+    renderMarksheet(currentResult);
+  }
 }
 
 // Evaluate Paper / Booklet Workflow
@@ -215,31 +237,63 @@ async function runEvaluation() {
   const evaluationMood = { ...currentMood };
   try {
     if (isPdfMode && currentPdfDoc) {
-      // Evaluate ALL pages of the booklet
-      for (let i = 1; i <= totalPdfPages; i++) {
-        if (loadingText) loadingText.textContent = `Scrutinizing Page ${i} of ${totalPdfPages}...`;
-        if (!bookletPagesCache[i]) {
-          const pageCanvas = await renderPdfPage(currentPdfDoc, i, 1.5);
-          const boxes = await detectText(pageCanvas);
-          const grouped = groupAnswersByQuestion(boxes, pageCanvas.width, pageCanvas.height);
-          bookletPagesCache[i] = {
-            pageNumber: i,
-            canvas: pageCanvas,
-            groupedData: grouped,
-            boxes
-          };
-        }
+      // 1. Evaluate the active page first for instantaneous responsiveness
+      if (loadingText) loadingText.textContent = `Scrutinizing Page ${currentPdfPage} of ${totalPdfPages}...`;
+      if (!bookletPagesCache[currentPdfPage]) {
+        const pageCanvas = await renderPdfPage(currentPdfDoc, currentPdfPage, 1.5);
+        const boxes = await detectText(pageCanvas);
+        const grouped = groupAnswersByQuestion(boxes, pageCanvas.width, pageCanvas.height);
+        bookletPagesCache[currentPdfPage] = {
+          pageNumber: currentPdfPage,
+          canvas: pageCanvas,
+          groupedData: grouped,
+          boxes
+        };
       }
 
-      // Aggregate full booklet evaluation
-      const allPages = Object.values(bookletPagesCache);
-      currentResult = evaluateBooklet(allPages, evaluationMood);
-
-      // Set active view to current page
-      const activePage = bookletPagesCache[currentPdfPage] || bookletPagesCache[1];
+      // Display active page immediately
+      const activePage = bookletPagesCache[currentPdfPage];
       currentImage = activePage.canvas;
       currentGrouped = activePage.groupedData;
       currentBoxes = activePage.boxes;
+      currentResult = evaluateBooklet(Object.values(bookletPagesCache), evaluationMood);
+
+      redrawCanvas();
+      renderMarksheet(currentResult);
+      loadingOverlay.style.display = 'none';
+
+      // 2. Background queue for remaining pages of large booklets
+      (async () => {
+        for (let i = 1; i <= totalPdfPages; i++) {
+          if (!isPdfMode || !currentPdfDoc) break;
+          if (!bookletPagesCache[i]) {
+            try {
+              const pCanvas = await renderPdfPage(currentPdfDoc, i, 1.5);
+              const pBoxes = await detectText(pCanvas);
+              const pGrouped = groupAnswersByQuestion(pBoxes, pCanvas.width, pCanvas.height);
+              bookletPagesCache[i] = {
+                pageNumber: i,
+                canvas: pCanvas,
+                groupedData: pGrouped,
+                boxes: pBoxes
+              };
+              const evaluatedSoFar = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
+              currentResult = evaluateBooklet(evaluatedSoFar, evaluationMood);
+              renderMarksheet(currentResult);
+              setStatus(`${documentName} · ${evaluatedSoFar.length}/${totalPdfPages} pages evaluated`);
+            } catch (e) {
+              console.warn(`Error processing page ${i}:`, e);
+            }
+          }
+        }
+        if (isPdfMode) {
+          const finalAll = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
+          currentResult = evaluateBooklet(finalAll, evaluationMood);
+          renderMarksheet(currentResult);
+          redrawCanvas();
+          setStatus(`${documentName} · ${finalAll.length} page(s) evaluated · Full Booklet Scrutinized`);
+        }
+      })();
     } else if (currentImage) {
       // Single Image Evaluation
       if (loadingText) loadingText.textContent = 'Detecting handwriting & diagrams...';
@@ -258,12 +312,11 @@ async function runEvaluation() {
       };
 
       currentResult = evaluateBooklet([bookletPagesCache[1]], evaluationMood);
+      redrawCanvas();
+      renderMarksheet(currentResult);
+      const engines = [...new Set(currentBoxes.map(box => box.engine))];
+      setStatus(`${documentName} · 1 page evaluated · ${engines.includes('CanvasHeuristic') ? 'Basic layout detection' : engines.length ? 'Text-region detection' : 'No regions detected'}`);
     }
-
-    redrawCanvas();
-    renderMarksheet(currentResult);
-    const engines = [...new Set(Object.values(bookletPagesCache).flatMap(page => page.boxes.map(box => box.engine)))];
-    setStatus(`${documentName} · ${currentResult.pageMetrics.totalPages} page(s) evaluated · ${engines.includes('CanvasHeuristic') ? 'Basic layout detection' : engines.length ? 'Text-region detection' : 'No regions detected'}`);
   } catch (err) {
     throw err;
   } finally {
@@ -411,15 +464,15 @@ chipBtns.forEach(btn => {
   });
 });
 
-pdfPrevBtn.addEventListener('click', () => {
+pdfPrevBtn.addEventListener('click', async () => {
   if (currentPdfPage > 1) {
-    switchPdfViewPage(currentPdfPage - 1);
+    await switchPdfViewPage(currentPdfPage - 1);
   }
 });
 
-pdfNextBtn.addEventListener('click', () => {
+pdfNextBtn.addEventListener('click', async () => {
   if (currentPdfPage < totalPdfPages) {
-    switchPdfViewPage(currentPdfPage + 1);
+    await switchPdfViewPage(currentPdfPage + 1);
   }
 });
 

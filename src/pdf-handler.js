@@ -8,10 +8,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 export async function loadPdf(fileOrUrl) {
   let loadingTask;
   if (typeof fileOrUrl === 'string') {
-    loadingTask = pdfjsLib.getDocument(fileOrUrl);
+    loadingTask = pdfjsLib.getDocument({ url: fileOrUrl });
   } else {
     const arrayBuffer = await fileOrUrl.arrayBuffer();
-    loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
   }
   return await loadingTask.promise;
 }

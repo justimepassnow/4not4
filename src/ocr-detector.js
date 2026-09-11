@@ -121,7 +121,10 @@ async function runDbnetInference(session, img) {
     const unclipW = Math.min(imageWidth - unclipX, (b.width + 4) / scale);
     const unclipH = Math.min(imageHeight - unclipY, (b.height + 4) / scale);
 
-    if (unclipW > 10 && unclipH > 8) {
+    // Discard bottom watermark (e.g. CamScanner / KTUAssist in bottom 6%)
+    if (unclipY > imageHeight * 0.94) continue;
+
+    if (unclipW >= 6 && unclipH >= 6) {
       finalBoxes.push({
         x: Math.round(unclipX),
         y: Math.round(unclipY),
@@ -140,8 +143,8 @@ function extractBoundingBoxes(binaryMap, width, height) {
   const visited = new Uint8Array(width * height);
   const boxes = [];
 
-  for (let y = 0; y < height; y += 2) {
-    for (let x = 0; x < width; x += 2) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const idx = y * width + x;
       if (binaryMap[idx] === 1 && visited[idx] === 0) {
         // Flood fill / BFS
@@ -179,7 +182,7 @@ function extractBoundingBoxes(binaryMap, width, height) {
 
         const bWidth = maxX - minX + 1;
         const bHeight = maxY - minY + 1;
-        if (pixelCount > 15 && bWidth > 6 && bHeight > 4) {
+        if (pixelCount >= 6 && bWidth >= 2 && bHeight >= 3) {
           boxes.push({ x: minX, y: minY, width: bWidth, height: bHeight });
         }
       }

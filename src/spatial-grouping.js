@@ -9,124 +9,120 @@ export function groupAnswersByQuestion(boxes, imgWidth, imgHeight) {
 
   if (!(imgWidth > 0 && imgHeight > 0) || !boxes || boxes.length === 0) return empty;
 
-  // 1. Filter valid boxes and sort top-to-bottom
+  // 1. Filter valid boxes, exclude bottom watermark (CamScanner / KTUAssist in bottom 6%), and sort top-to-bottom
   const sorted = boxes.filter(b =>
-    [b.x, b.y, b.width, b.height].every(Number.isFinite) && b.width > 4 && b.height > 4
+    [b.x, b.y, b.width, b.height].every(Number.isFinite) &&
+    b.width >= 4 && b.height >= 4 &&
+    b.y < imgHeight * 0.94
   ).sort((a, b) => a.y - b.y || a.x - b.x);
 
   if (!sorted.length) return empty;
 
-  // Margin column: Left ~18% of page (or max 160px)
-  const marginX = Math.min(imgWidth * 0.18, 155);
-
-  const marginBoxes = [];
-  const bodyBoxes = [];
-
-  for (const b of sorted) {
-    // If box starts inside the left margin and is compact horizontally
-    if (b.x < marginX && b.x + b.width < marginX + 35 && b.width < imgWidth * 0.22) {
-      marginBoxes.push(b);
-    } else {
-      bodyBoxes.push(b);
+  // 2. Adaptively detect page layout and left text margin
+  // Sample line starts across the page height to find the baseline left edge of body text
+  const lineLefts = [];
+  for (let y = Math.round(imgHeight * 0.08); y < imgHeight * 0.88; y += 45) {
+    const nearby = sorted.filter(b => Math.abs(b.y - y) < 25);
+    if (nearby.length > 0) {
+      lineLefts.push(Math.min(...nearby.map(b => b.x)));
     }
   }
+  lineLefts.sort((a, b) => a - b);
+  const bodyLeft = lineLefts.length > 0
+    ? lineLefts[Math.floor(lineLefts.length * 0.15)]
+    : imgWidth * 0.20;
 
-  // 2. Identify Question Units:
-  // In university exam answer sheets, students structure their writing as:
-  //   [Question Number] (e.g. "1.", "2.")
-  //   [Question Statement] (1-2 lines of text)
-  //   [Ans) Marker]
-  //   [Answer Content] (formulas, paragraphs, tables, diagrams)
-  //
-  // Pairing rule:
-  // If margin marker M1 is followed by margin marker M2 within 260px:
-  //   M1 = Question Number Anchor
-  //   M2 = Answer Start Anchor ("Ans)")
-  //   They are the SAME question!
-  //
-  // Single marker rule:
-  // If a margin marker M has body text above it (e.g. "Explain significance of... ?"):
-  //   M = Answer Start Anchor ("Ans)")
-  //   The text above M is the Question Statement!
-  // If a margin marker M has NO body text above it:
-  //   M = Question Number Anchor
-  //   The answer starts after the first 1-2 lines next to M.
+  // Outdented margin markers (e.g. "1.", "2.", "7.", "Ans)", "*", "•")
+  // These sit to the left of the body text and are compact horizontally
+  const markers = sorted.filter(b =>
+    (b.x < bodyLeft - 18 || (b.x < bodyLeft && b.x + b.width <= bodyLeft + 15)) &&
+    b.width <= 85
+  );
 
+  const topMarkers = markers.filter(m => m.y < 150);
+  const ansMarkers = markers.filter(m => m.y >= 120 && m.y <= 340);
+
+  // 3. Classify Page Layout Structure:
+  // Case A: Paired [Question Number] + [Ans)] markers
+  // Case B: Top Question only (e.g. "7.", "*", or line 1 question statement)
+  // Case C: Body Question above an "Ans)" marker
+  // Case D: Continuation page (no question header; entire page is student answer)
   const units = [];
-  let m = 0;
 
-  while (m < marginBoxes.length) {
-    const cur = marginBoxes[m];
-    const next = marginBoxes[m + 1];
-
-    // Check if cur and next form a [Question Number] + [Ans)] pair
-    if (next && (next.y - cur.y < 260)) {
-      units.push({
-        qAnchor: cur,
-        ansAnchor: next,
-        qStartY: cur.y - 15,
-        ansStartY: next.y - 10
-      });
-      m += 2;
-    } else {
-      // Single margin box. Does it have body text above it?
-      const prevAnsBottom = units.length > 0 ? units.at(-1).ansStartY + 50 : 0;
-      const bodyAbove = bodyBoxes.filter(b => b.y < cur.y - 8 && b.y >= prevAnsBottom);
-
-      if (bodyAbove.length > 0) {
-        // Body text above cur -> cur is "Ans)"! The text above is the Question!
-        const qStartY = Math.min(...bodyAbove.map(b => b.y)) - 12;
-        units.push({
-          qAnchor: bodyAbove[0], // First line of question text
-          ansAnchor: cur,        // "Ans)" in margin
-          qStartY,
-          ansStartY: cur.y - 10
-        });
-      } else {
-        // No body text above cur -> cur is Question Number!
-        // Estimate answer start: 1-2 lines below cur (~65px)
-        units.push({
-          qAnchor: cur,
-          ansAnchor: null,
-          qStartY: cur.y - 15,
-          ansStartY: cur.y + Math.max(cur.height + 25, 75)
-        });
-      }
-      m += 1;
-    }
-  }
-
-  // Fallback: If no margin marks were found at all, treat whole page as 1 unit
-  if (units.length === 0 && bodyBoxes.length > 0) {
+  if (topMarkers.length > 0 && ansMarkers.length > 0) {
+    // Paired Q# + Ans (e.g. Page 1, Page 2)
+    const qAnchor = topMarkers[0];
+    const ansAnchor = ansMarkers[0];
+    const ansStartY = ansAnchor.y - 35;
     units.push({
-      qAnchor: bodyBoxes[0],
+      qAnchor,
+      ansAnchor,
+      qStartY: qAnchor.y - 15,
+      ansStartY,
+      isContinuation: false
+    });
+  } else if (topMarkers.length > 0) {
+    // Top Question only (e.g. Page 3, Page 6, Page 7, Page 8)
+    const qAnchor = topMarkers[0];
+    // Question statement is the first 1-2 lines
+    const nearby = sorted.filter(b => b.y < qAnchor.y + 160 && b !== qAnchor && b.y < qAnchor.y + 90);
+    const splitY = nearby.length > 0
+      ? Math.max(...nearby.map(b => b.y + b.height)) + 12
+      : qAnchor.y + 75;
+
+    units.push({
+      qAnchor,
       ansAnchor: null,
-      qStartY: Math.max(0, bodyBoxes[0].y - 15),
-      ansStartY: bodyBoxes[0].y + 75
+      qStartY: qAnchor.y - 15,
+      ansStartY: splitY,
+      isContinuation: false
+    });
+  } else if (ansMarkers.length > 0) {
+    // Body Question above Ans
+    const ansAnchor = ansMarkers[0];
+    const ansStartY = ansAnchor.y - 35;
+    const bodyAbove = sorted.filter(b => b.y < ansStartY);
+    units.push({
+      qAnchor: bodyAbove.length > 0 ? bodyAbove[0] : null,
+      ansAnchor,
+      qStartY: bodyAbove.length > 0 ? Math.min(...bodyAbove.map(b => b.y)) - 12 : 0,
+      ansStartY,
+      isContinuation: false
+    });
+  } else {
+    // Continuation Page (e.g. Page 4, Page 5)
+    units.push({
+      qAnchor: null,
+      ansAnchor: null,
+      qStartY: 0,
+      ansStartY: 0,
+      isContinuation: true
     });
   }
 
-  // 3. Partition content into Question Text vs Answer Content
+  // 4. Partition content into Question Text vs Answer Content
   const questions = units.map((unit, idx) => {
-    const nextUnit = units[idx + 1];
-    const unitMaxY = nextUnit ? nextUnit.qStartY : imgHeight;
+    let questionBoxes = [];
+    let answerBoxes = [];
 
-    // Question boxes: strictly between qStartY and ansStartY
-    const questionBoxes = sorted.filter(b =>
-      b.y >= unit.qStartY - 5 && b.y < unit.ansStartY &&
-      b !== unit.ansAnchor
-    );
-
-    // Answer boxes: strictly between ansStartY and next question's start
-    const answerBoxes = sorted.filter(b =>
-      b.y >= unit.ansStartY && b.y < unitMaxY &&
-      b !== unit.qAnchor
-    );
+    if (unit.isContinuation) {
+      questionBoxes = [];
+      answerBoxes = sorted;
+    } else {
+      questionBoxes = sorted.filter(b =>
+        b.y >= unit.qStartY - 5 && b.y < unit.ansStartY &&
+        b !== unit.ansAnchor && b !== unit.qAnchor
+      );
+      answerBoxes = sorted.filter(b =>
+        b.y >= unit.ansStartY &&
+        b !== unit.qAnchor
+      );
+    }
 
     // Detect Diagrams & Tables inside the answer
     const diagramBoxes = [];
     for (const b of answerBoxes) {
-      if (b.width > 95 && b.height > 55) {
+      if (b.width > 90 && b.height > 55) {
         diagramBoxes.push(b);
       }
     }
@@ -149,12 +145,13 @@ export function groupAnswersByQuestion(boxes, imgWidth, imgHeight) {
     const hasMarginBreach = answerBoxes.some(b => b.x + b.width > imgWidth * 0.95);
 
     return {
-      qNumber: `Q${idx + 1}`,
-      anchor: unit.ansAnchor || unit.qAnchor,
+      qNumber: unit.isContinuation ? 'ANS (Cont.)' : `Q${idx + 1}`,
+      isContinuation: unit.isContinuation,
+      anchor: unit.ansAnchor || unit.qAnchor || (answerBoxes[0] || null),
       qAnchor: unit.qAnchor,
       ansAnchor: unit.ansAnchor,
       questionBoxes,
-      boxes: answerBoxes,        // The student's answer boxes!
+      boxes: answerBoxes,
       answerBoxes,
       verticalSpan,
       inkArea,
