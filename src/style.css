@@ -621,6 +621,13 @@ nav a:hover {
   margin:0 0 10px;
 }
 
+.breakdown-table-wrapper {
+  max-height: 230px;
+  overflow-y: auto;
+  border: 1px solid #e7eef4;
+  border-radius: 6px;
+}
+
 .marks-table {
   width:100%;
   border-collapse:collapse;
@@ -628,6 +635,9 @@ nav a:hover {
 }
 
 .marks-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   text-align:left;
   background:#edf4fb;
   color:#647d92;
@@ -641,7 +651,8 @@ nav a:hover {
 }
 
 .remarks-section {
-  margin-top:23px;
+  margin-top:16px;
+  margin-bottom:20px;
 }
 
 .remarks-list {

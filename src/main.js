@@ -371,7 +371,7 @@ function renderMarksheet(result) {
   const rawMarks = result.breakdown.reduce((sum, item) => sum + item.marks, 0);
   document.getElementById('scoreExplanation').textContent = result.breakdown.length
     ? `Region subtotal: ${rawMarks} / ${result.breakdown.length * 10}. Final score includes booklet and shift adjustments (${result.examinerMood.time}, ${result.examinerMood.multiplier}×).`
-    : 'No answer regions detected. This score cannot be interpreted as an assessment of the answer.';
+    : 'No answer regions detected. Upload a clearer scan.';
 
   // Question Breakdown Table (Across all booklet pages!)
   breakdownTbody.innerHTML = '';

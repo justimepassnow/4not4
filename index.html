@@ -40,7 +40,6 @@
     </header>
 
     <section class="page-heading" id="workspace"><div><div class="eyebrow">EXAMINATION / VALUATION</div><h2>Valuation dashboard</h2><p>Upload an answer sheet, explore a shift, and review the marks.</p></div><span class="session-badge">● Browser session</span></section>
-    <div class="notice"><strong>Simulation mode</strong><span>Marks depend on page layout and examiner mood. Detected regions are estimates, not recognised question numbers or answer content.</span></div>
     <div id="appStatus" class="app-status" role="status" aria-live="polite">Preparing sample sheet…</div>
     <!-- Examiner Mood Banner & Shift Scrubber -->
     <section class="examiner-hud-section" id="shiftPanel" aria-label="Examiner shift">
@@ -131,12 +130,12 @@
         <div class="canvas-wrapper">
           <div class="canvas-overlay-controls">
             <label class="toggle-control">
-              <input type="checkbox" id="toggleBoxes" checked />
-              <span class="toggle-text">Detected regions</span>
+              <input type="checkbox" id="toggleRedPen" checked />
+              <span class="toggle-text">Teacher red ink</span>
             </label>
             <label class="toggle-control">
-              <input type="checkbox" id="toggleRedPen" checked />
-              <span class="toggle-text">Show marks</span>
+              <input type="checkbox" id="toggleBoxes" />
+              <span class="toggle-text">Detected regions</span>
             </label>
           </div>
           <div class="canvas-container" id="canvasContainer">
@@ -188,25 +187,7 @@
             </div>
           </div>
 
-          <!-- Question-wise Table -->
-          <div class="breakdown-section">
-            <h3 class="section-title">REGION MARKS</h3>
-            <table class="marks-table">
-              <thead>
-                <tr>
-                  <th>Region</th>
-                  <th>Answer Span</th>
-                  <th>Diagram</th>
-                  <th>Marks</th>
-                </tr>
-              </thead>
-              <tbody id="breakdownTbody">
-                <!-- Populated dynamically -->
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Troll Remarks -->
+          <!-- Examiner Remarks - Placed prominently above table so remarks are never pushed off screen -->
           <div class="remarks-section">
             <h3 class="section-title">EXAMINER REMARKS</h3>
             <ul class="remarks-list" id="remarksList">
@@ -214,15 +195,35 @@
             </ul>
           </div>
 
+          <!-- Question-wise Region Table (Scrollable container to keep card compact) -->
+          <div class="breakdown-section">
+            <h3 class="section-title">REGION MARKS</h3>
+            <div class="breakdown-table-wrapper">
+              <table class="marks-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th>Answer Span</th>
+                    <th>Diagram</th>
+                    <th>Marks</th>
+                  </tr>
+                </thead>
+                <tbody id="breakdownTbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- KTU Official Footer Stamp -->
           <div class="marksheet-footer">
-            <div class="footer-seal">FOR CAMPUS HUMOUR ONLY</div>
-            <div class="footer-note">Region marks are normalised to 100, then adjusted for booklet size and examiner shift. These are not academic results.</div>
+            <div class="footer-seal">OFFICIAL VALUATION RECORD</div>
+            <div class="footer-note">Normalised score adjusted for booklet heft and examiner shift.</div>
           </div>
         </div>
       </aside>
     </main>
-    <footer class="app-footer">KTU Valuator 3000 <span>Independent campus satire · Processed in your browser</span></footer>
+    <footer class="app-footer">KTU Valuator 3000 · Satirical campus simulator · Processed in your browser</footer>
   </div>
 
   <script type="module" src="./src/main.js"></script>

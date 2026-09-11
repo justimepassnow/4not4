@@ -5,7 +5,7 @@ export function renderEvaluationCanvas({
   image,
   groupedData,
   evaluationResult,
-  showBoxes = true,
+  showBoxes = false,
   showRedPen = true,
   currentPageNumber = 1
 }) {
