@@ -8,7 +8,8 @@
 ### Team Name: Supply Shenanigans
 
 ### Team Members
-- Team Lead: Akshay - TinkerHub
+- Team Lead: Akshay Kumar A
+- Member: Anoob B
 
 ### Project Description
 A satirical, in-browser answer sheet evaluation software inspired by Kerala KTU valuation memes. Instead of reading handwritten answers, it evaluates papers based on physical ink volume, answer vertical height, flowchart/box presence, and most importantly: the **exact time of evaluation** (pre-lunch hangry hour vs post-chaya nirvana).
@@ -22,7 +23,7 @@ An automated in-browser AI valuation cell powered by PaddleOCR DBNet (ONNX WASM)
 - **Diagram Multiplier**: Any box with arrows gets +3.5 marks automatically.
 - **Time-of-Valuation Mood Engine**:
   - **12:30 PM (Pre-Lunch Hangry Hour)**: -25% penalty, 38/100 failure syndrome.
-  - **11:15 AM (Post-Chaya Nirvana)**: Sulaimani & Parippuvada high, +10 marks to everyone!
+  - **11:15 AM (Post-Chaya Nirvana)**: Chaya & Parippuvada high, +10 marks to everyone!
   - **02:45 PM (Post-Lunch Food Coma)**: Flat 52/100 to everyone without looking.
   - **04:50 PM (KSRTC Bus Rush)**: 5-second grading purely by diagram count.
 
@@ -50,67 +51,38 @@ npm run dev
 ### Project Documentation
 For Software:
 
-# Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+# Screenshots
+![Valuation Dashboard](screenshots/dashboard_evaluation.png)
+*Valuation Dashboard: Full KTU answer booklet scrutiny with live examiner mood tracker, moderation dice roll, and final grade marksheet.*
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
+![Teacher Red-Pen Corrections](screenshots/handwriting_red_ink.png)
+*Teacher Red-Pen Mode: Automated satirical annotations (checkmarks, squiggles, and circled question scores) on student handwritten answer sheets.*
 
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
 
 # Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
+```mermaid
+flowchart LR
+    A["Upload Paper / PDF"] --> B["PaddleOCR DBNet"]
+    B --> C["Spatial Grouping"]
+    C --> D["Examiner Mood Clock"]
+    D --> E["Teacher Red-Pen Canvas"]
+    E --> F["Moderation Dice Fate"]
+    F --> G["KTU Marksheet"]
+```
 
-For Hardware:
 
-# Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
-
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
-
-# Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
-
-![Build](Add photos of build process here)
-*Explain the build steps*
-
-![Final](Add photo of final product here)
-*Explain the final build*
-
-### Project Demo
-# Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
-
-# Additional Demos
-[Add any extra demo materials/links]
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+- Akshay Kumar A: Full-stack architecture, ONNX DBNet text-region detection integration, satirical valuation scoring algorithms, examiner shift/mood simulation, HTML5 canvas red-pen annotation engine, and tabbed valuation portal.
+- Anoob B: KTU multi-page answer booklet testing, valuation rules validation, sample answer sheet curation, and edge-case testing.
+
+### Valuation Workspace
+The interface uses ktu theme. Upload an image or PDF, toggle region outlines and marks, and navigate PDF pages to review the complete booklet report.
+
+Question markers are estimated from compact shapes in the left margin with nearby answer content. Without markers, large whitespace gaps separate regions. Detached headers are excluded when a first answer marker is found. The satirical scoring, shift multiplier rules, and moderation dice mechanics are fully simulated in-browser.
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
 
 ![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
 ![Static Badge](https://img.shields.io/badge/UselessProjects--26-26?link=https%3A%2F%2Ftinkerhub.org%2Fevents%2F1M8ORET9A1%2Fuseless-projects-3.0)
-
-
-
-
-
-### Valuation workspace
-The interface uses a responsive blue portal theme. Upload an image or PDF, toggle region outlines and marks, and navigate PDF pages to review the complete booklet report.
-
-Question markers are estimated from compact shapes in the left margin with nearby answer content. Without markers, large whitespace gaps separate regions. Labels such as R1 and P2-R1 identify detected regions, not recognised question numbers. Detached headers are excluded when a first answer marker is found. The existing satirical scoring and shift rules are preserved.
-
-The basic detector keeps thin strokes, separates margin markers from answer lines, and supports both image and PDF canvases. Detection remains geometric; handwriting recognition and semantic answer assessment are not included. ONNX runtime assets are bundled locally with the app.
-
-Run `npm test` for grouping, fallback detection, supplied image samples, and three-page PDF checks. Run `npm run build` for the production bundle.
