@@ -4,20 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KTU Valuator 3000 — Satirical Answer Sheet Grading Engine</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
+  <a class="skip-link" href="#workspace">Skip to valuation</a>
+  <aside class="portal-sidebar">
+    <div class="portal-brand"><span class="brand-symbol">V</span><strong>Valuation portal<small>KTU Valuator 3000</small></strong></div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav aria-label="Main navigation"><a href="#workspace">▦ <span>Valuation dashboard</span></a><a href="#uploadPanel">↑ <span>Answer sheets</span></a><a href="#marksheetCard">▤ <span>Valuation report</span></a><a href="#shiftPanel">◷ <span>Examiner shift</span></a></nav>
+    <div class="sidebar-note"><strong>A little campus humour.</strong><p>An independent, satirical simulator inspired by the valuation camp.</p><span>Not affiliated with KTU</span></div>
+  </aside>
   <div id="app">
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-left">
-        <div class="university-logo">⚖️</div>
+        <div class="university-logo">V</div>
         <div>
-          <h1 class="header-title">KTU VALUATOR 3000</h1>
-          <p class="header-subtitle">APJ Abdul Kalam Technological University • Automated Revaluation Cell</p>
+          <h1 class="header-title">Answer sheet valuation</h1>
+          <p class="header-subtitle">KTU Valuator 3000 / Valuation workspace</p>
         </div>
       </div>
 
@@ -25,7 +29,7 @@
       <div class="camp-clock-card">
         <div class="clock-top">
           <span class="live-dot"></span>
-          <span class="clock-label">CAMP OFFICIAL CLOCK</span>
+          <span class="clock-label">EXAMINER CLOCK</span>
         </div>
         <div class="clock-digits" id="clockDisplay">12:30 PM</div>
         <div class="clock-controls">
@@ -35,11 +39,14 @@
       </div>
     </header>
 
+    <section class="page-heading" id="workspace"><div><div class="eyebrow">EXAMINATION / VALUATION</div><h2>Valuation dashboard</h2><p>Upload an answer sheet, explore a shift, and review the marks.</p></div><span class="session-badge">● Browser session</span></section>
+    <div class="notice"><strong>Simulation mode</strong><span>Marks depend on page layout and examiner mood. Detected regions are estimates, not recognised question numbers or answer content.</span></div>
+    <div id="appStatus" class="app-status" role="status" aria-live="polite">Preparing sample sheet…</div>
     <!-- Examiner Mood Banner & Shift Scrubber -->
-    <section class="examiner-hud-section">
+    <section class="examiner-hud-section" id="shiftPanel" aria-label="Examiner shift">
       <div class="time-scrubber-row" id="scrubberContainer" style="display: none;">
         <span class="scrub-label">⏰ Scrub Valuation Shift:</span>
-        <input type="range" id="timeSlider" min="480" max="1320" step="15" value="750" class="custom-slider" />
+        <input type="range" id="timeSlider" min="480" max="1320" step="5" value="750" class="custom-slider" aria-label="Simulated examiner time" />
         <span id="sliderTimeLabel" class="time-pill">12:30 PM</span>
         <div class="quick-presets">
           <button class="chip-btn" data-time="675">🫖 11:15 AM (Chaya Break)</button>
@@ -86,22 +93,22 @@
       <!-- Left Column: Controls & Canvas -->
       <section class="viewer-column">
         <!-- Control Bar -->
-        <div class="toolbar-card">
+        <div class="toolbar-card" id="uploadPanel"><h2 class="panel-title">Answer sheets</h2>
           <div class="preset-group">
             <span class="tb-label">Sample Sheets:</span>
-            <button class="preset-btn active" data-sample="sample1_flowchart.png">📦 Flowchart Flexer</button>
-            <button class="preset-btn" data-sample="sample2_dense_filler.png">📝 Sheet Filler</button>
-            <button class="preset-btn" data-sample="sample3_half_page.png">😭 Half-Page Despair</button>
-            <button class="preset-btn" data-sample="sample4_ktu_booklet.pdf" data-is-pdf="true">📑 3-Page Booklet (PDF)</button>
+            <button class="preset-btn active" data-sample="sample1_flowchart.png">Flowchart sample</button>
+            <button class="preset-btn" data-sample="sample2_dense_filler.png">Dense writing</button>
+            <button class="preset-btn" data-sample="sample3_half_page.png">Half-page answer</button>
+            <button class="preset-btn" data-sample="sample4_ktu_booklet.pdf" data-is-pdf="true">3-page booklet</button>
           </div>
 
           <div class="upload-group">
             <label for="imageUploadInput" class="upload-btn">
-              <span>📄 Upload Paper / PDF</span>
+              <span>Upload image or PDF</span>
               <input type="file" id="imageUploadInput" accept="image/*,application/pdf,.pdf" />
             </label>
             <button id="evaluateBtn" class="action-btn">
-              <span id="evalBtnText">⚡ Evaluate Paper</span>
+              <span id="evalBtnText">Evaluate sheet</span>
             </button>
           </div>
         </div>
@@ -124,18 +131,18 @@
           <div class="canvas-overlay-controls">
             <label class="toggle-control">
               <input type="checkbox" id="toggleBoxes" checked />
-              <span class="toggle-text">OCR Bounding Boxes</span>
+              <span class="toggle-text">Detected regions</span>
             </label>
             <label class="toggle-control">
               <input type="checkbox" id="toggleRedPen" checked />
-              <span class="toggle-text">Examiner Red-Pen Marks</span>
+              <span class="toggle-text">Show marks</span>
             </label>
           </div>
           <div class="canvas-container" id="canvasContainer">
             <canvas id="mainCanvas"></canvas>
             <div id="loadingOverlay" class="loading-overlay" style="display: none;">
               <div class="spinner"></div>
-              <div class="loading-text">Weighing Paper & Detecting Diagrams...</div>
+              <div class="loading-text">Detecting answer regions…</div>
             </div>
           </div>
         </div>
@@ -145,47 +152,48 @@
       <aside class="results-column">
         <div class="marksheet-card" id="marksheetCard">
           <div class="marksheet-header">
-            <div class="univ-sub">KERALA TECHNOLOGICAL UNIVERSITY</div>
-            <h2 class="marksheet-title">OFFICIAL VALUATION REPORT</h2>
-            <div class="bundle-id">EXAM BUNDLE: #KTU-CS301-2026</div>
+            <div class="univ-sub">VALUATION SUMMARY</div>
+            <h2 class="marksheet-title">Your valuation report</h2>
+            <div class="bundle-id">Full document · Simulated marks</div>
           </div>
 
           <!-- Final Grade Banner -->
+          <p id="scoreExplanation" class="report-note"></p>
           <div class="grade-banner" id="gradeBanner">
-            <div class="grade-circle" id="gradeBadge">F</div>
+            <div class="grade-circle" id="gradeBadge">—</div>
             <div class="grade-info">
-              <div class="grade-score" id="scoreDisplay">38.5 / 100</div>
-              <div class="grade-status" id="passFailStatus">✖ REVALUATION MANDATORY</div>
+              <div class="grade-score" id="scoreDisplay">— / 100</div>
+              <div class="grade-status" id="passFailStatus">Awaiting evaluation</div>
             </div>
           </div>
 
           <!-- Physical Paper Metrics -->
           <div class="metrics-grid">
             <div class="metric-box">
-              <div class="metric-label">INK VOLUME</div>
-              <div class="metric-val" id="inkMetric">48%</div>
+              <div class="metric-label">DETECTED COVERAGE</div>
+              <div class="metric-val" id="inkMetric">—</div>
             </div>
             <div class="metric-box">
-              <div class="metric-label">DIAGRAMS FOUND</div>
-              <div class="metric-val" id="diagramMetric">2 (+7.0m)</div>
+              <div class="metric-label">POSSIBLE DIAGRAMS</div>
+              <div class="metric-val" id="diagramMetric">—</div>
             </div>
             <div class="metric-box">
-              <div class="metric-label">MARGIN FILL</div>
-              <div class="metric-val" id="marginMetric">Aggressive</div>
+              <div class="metric-label">PAGES EVALUATED</div>
+              <div class="metric-val" id="marginMetric">—</div>
             </div>
             <div class="metric-box">
-              <div class="metric-label">EST. WEIGHT</div>
-              <div class="metric-val" id="weightMetric">42 grams</div>
+              <div class="metric-label">DETECTED REGIONS</div>
+              <div class="metric-val" id="weightMetric">—</div>
             </div>
           </div>
 
           <!-- Question-wise Table -->
           <div class="breakdown-section">
-            <h3 class="section-title">QUESTION-WISE MARKS BREAKDOWN</h3>
+            <h3 class="section-title">REGION MARKS</h3>
             <table class="marks-table">
               <thead>
                 <tr>
-                  <th>Q.No</th>
+                  <th>Region</th>
                   <th>Answer Span</th>
                   <th>Diagram</th>
                   <th>Marks</th>
@@ -199,7 +207,7 @@
 
           <!-- Troll Remarks -->
           <div class="remarks-section">
-            <h3 class="section-title">EXAMINER SCRUTINY REMARKS</h3>
+            <h3 class="section-title">EXAMINER REMARKS</h3>
             <ul class="remarks-list" id="remarksList">
               <!-- Populated dynamically -->
             </ul>
@@ -207,12 +215,13 @@
 
           <!-- KTU Official Footer Stamp -->
           <div class="marksheet-footer">
-            <div class="footer-seal">SEAL OF ARBITRARY VALUATION</div>
-            <div class="footer-note">*This evaluation conforms to KTU B.Tech Ordinance Section 42(a): Marks are inversely proportional to examiner hunger.</div>
+            <div class="footer-seal">FOR CAMPUS HUMOUR ONLY</div>
+            <div class="footer-note">Region marks are normalised to 100, then adjusted for booklet size and examiner shift. These are not academic results.</div>
           </div>
         </div>
       </aside>
     </main>
+    <footer class="app-footer">KTU Valuator 3000 <span>Independent campus satire · Processed in your browser</span></footer>
   </div>
 
   <script type="module" src="./src/main.js"></script>

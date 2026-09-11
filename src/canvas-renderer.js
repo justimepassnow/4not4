@@ -49,7 +49,7 @@ export function renderEvaluationCanvas({
           ctx.fillRect(box.x, Math.max(0, box.y - 18), 105, 18);
           ctx.fillStyle = '#000000';
           ctx.font = 'bold 10px sans-serif';
-          ctx.fillText('DIAGRAM (+3.5)', box.x + 4, Math.max(12, box.y - 4));
+          ctx.fillText('POSSIBLE DIAGRAM', box.x + 4, Math.max(12, box.y - 4));
         } else {
           ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
           ctx.lineWidth = 1.5;
@@ -165,8 +165,8 @@ function drawKtuStamp(ctx, x, y, grade, marks) {
   // Stamp header & footer
   ctx.font = 'bold 9px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('APJ ABDUL KALAM TECH UNIV', 0, -50);
-  ctx.fillText('CENTRALIZED VALUATION CAMP', 0, -36);
+  ctx.fillText('VALUATION SIMULATOR', 0, -50);
+  ctx.fillText('BOOKLET TOTAL', 0, -36);
 
   // Grade & marks
   ctx.font = 'bold 28px sans-serif';
@@ -176,7 +176,7 @@ function drawKtuStamp(ctx, x, y, grade, marks) {
   ctx.fillText(`${marks}/100`, 0, 24);
 
   ctx.font = 'bold 10px monospace';
-  ctx.fillText(marks >= 40 ? '★ VERIFIED PASSED ★' : '✖ REVALUATION REQ ✖', 0, 50);
+  ctx.fillText(marks >= 40 ? 'SIMULATED PASS' : 'SIMULATED FAIL', 0, 50);
 
   ctx.restore();
 }

@@ -15,6 +15,47 @@ let currentBoxes = [];
 let currentGrouped = null;
 let currentResult = null;
 let currentMood = null;
+let busy = false;
+let documentName = 'Flowchart sample';
+const appStatus = document.getElementById('appStatus');
+function setStatus(message, error = false) {
+  appStatus.textContent = message;
+  appStatus.classList.toggle('error', error);
+}
+async function withBusy(task) {
+  if (busy) return;
+  busy = true;
+  const controls = [...document.querySelectorAll('button, input')];
+  controls.forEach(control => { control.disabled = true; });
+  try { await task(); }
+  catch (error) {
+    console.error(error);
+    currentResult = null;
+    currentGrouped = null;
+    currentImage = null;
+    currentPdfDoc = null;
+    bookletPagesCache = {};
+    isPdfMode = false;
+    pdfPaginationBar.style.display = 'none';
+    mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    gradeBadge.textContent = '—';
+    scoreDisplay.textContent = '— / 100';
+    passFailStatus.textContent = 'Evaluation unavailable';
+    breakdownTbody.replaceChildren();
+    remarksList.replaceChildren();
+    [inkMetric, diagramMetric, marginMetric, weightMetric].forEach(el => el.textContent = '—');
+    document.getElementById('scoreExplanation').textContent = '';
+    setStatus('Unable to process this file. Try a valid image or an unencrypted PDF, or select a sample.', true);
+  } finally {
+    busy = false;
+    imageUploadInput.value = '';
+    controls.forEach(control => { control.disabled = false; });
+    evaluateBtn.disabled = !currentImage && !currentPdfDoc;
+    pdfPrevBtn.disabled = currentPdfPage <= 1;
+    pdfNextBtn.disabled = currentPdfPage >= totalPdfPages;
+    loadingOverlay.style.display = 'none';
+  }
+}
 
 // PDF & Booklet State
 let isPdfMode = false;
@@ -108,6 +149,8 @@ async function loadImage(url) {
       currentImage = img;
       isPdfMode = false;
       currentPdfDoc = null;
+      currentPdfPage = 1;
+      totalPdfPages = 1;
       bookletPagesCache = {};
       pdfPaginationBar.style.display = 'none';
       loadingOverlay.style.display = 'none';
@@ -141,7 +184,7 @@ async function loadPdfBooklet(fileOrUrl, filename = 'booklet.pdf') {
     // Run full booklet evaluation across all pages
     await runEvaluation();
   } catch (err) {
-    console.error('Failed to load PDF booklet:', err);
+    throw err;
   } finally {
     loadingOverlay.style.display = 'none';
   }
@@ -166,9 +209,10 @@ function switchPdfViewPage(pageNum) {
 // Evaluate Paper / Booklet Workflow
 async function runEvaluation() {
   loadingOverlay.style.display = 'flex';
-  evalBtnText.textContent = '⏳ Scrutinizing...';
+  evalBtnText.textContent = 'Evaluating…';
   evaluateBtn.disabled = true;
 
+  const evaluationMood = { ...currentMood };
   try {
     if (isPdfMode && currentPdfDoc) {
       // Evaluate ALL pages of the booklet
@@ -189,7 +233,7 @@ async function runEvaluation() {
 
       // Aggregate full booklet evaluation
       const allPages = Object.values(bookletPagesCache);
-      currentResult = evaluateBooklet(allPages, currentMood);
+      currentResult = evaluateBooklet(allPages, evaluationMood);
 
       // Set active view to current page
       const activePage = bookletPagesCache[currentPdfPage] || bookletPagesCache[1];
@@ -213,16 +257,18 @@ async function runEvaluation() {
         }
       };
 
-      currentResult = evaluateBooklet([bookletPagesCache[1]], currentMood);
+      currentResult = evaluateBooklet([bookletPagesCache[1]], evaluationMood);
     }
 
     redrawCanvas();
     renderMarksheet(currentResult);
+    const engines = [...new Set(Object.values(bookletPagesCache).flatMap(page => page.boxes.map(box => box.engine)))];
+    setStatus(`${documentName} · ${currentResult.pageMetrics.totalPages} page(s) evaluated · ${engines.includes('CanvasHeuristic') ? 'Basic layout detection' : engines.length ? 'Text-region detection' : 'No regions detected'}`);
   } catch (err) {
-    console.error('Evaluation failure:', err);
+    throw err;
   } finally {
     loadingOverlay.style.display = 'none';
-    evalBtnText.textContent = '⚡ Evaluate Paper';
+    evalBtnText.textContent = 'Evaluate sheet';
     evaluateBtn.disabled = false;
   }
 }
@@ -245,7 +291,7 @@ function renderMarksheet(result) {
 
   // Grade & Total (Calculated for the entire booklet!)
   gradeBadge.textContent = result.grade;
-  scoreDisplay.textContent = `${result.totalMarks} / 100`;
+  scoreDisplay.textContent = `${result.totalMarks} / ${result.maxMarks}`;
 
   const totalPages = result.pageMetrics.totalPages || 1;
   const isBooklet = totalPages > 1;
@@ -254,20 +300,25 @@ function renderMarksheet(result) {
     gradeBadge.className = 'grade-circle pass';
     passFailStatus.className = 'grade-status pass';
     passFailStatus.textContent = isBooklet
-      ? `✔ PASSED BOOKLET (${totalPages} PAGES)`
-      : '✔ PASSED (DIVINE INTERVENTION)';
+      ? `Simulated pass · ${totalPages} pages`
+      : 'Simulated pass';
   } else {
     gradeBadge.className = 'grade-circle';
     passFailStatus.className = 'grade-status';
-    passFailStatus.textContent = '✖ REVALUATION MANDATORY (PAY ₹600)';
+    passFailStatus.textContent = 'Simulated fail · Below 40 / 100';
   }
 
   // Metrics
   const fillPct = Math.round(result.pageMetrics.pageFillRatio * 100);
   inkMetric.textContent = `${fillPct}%`;
-  diagramMetric.textContent = `${result.pageMetrics.diagramCount} (+${result.pageMetrics.diagramCount * 3.5}m)`;
-  marginMetric.textContent = isBooklet ? `${totalPages} Pages Filled` : (fillPct > 60 ? 'Aggressive' : 'Disciplinary');
-  weightMetric.textContent = `${Math.round((28 + result.pageMetrics.pageFillRatio * 25) * totalPages)} grams`;
+  diagramMetric.textContent = `${result.pageMetrics.diagramCount}`;
+  marginMetric.textContent = `${totalPages}`;
+  weightMetric.textContent = `${result.breakdown.length}`;
+
+  const rawMarks = result.breakdown.reduce((sum, item) => sum + item.marks, 0);
+  document.getElementById('scoreExplanation').textContent = result.breakdown.length
+    ? `Region subtotal: ${rawMarks} / ${result.breakdown.length * 10}. Final score includes booklet and shift adjustments (${result.examinerMood.time}, ${result.examinerMood.multiplier}×).`
+    : 'No answer regions detected. This score cannot be interpreted as an assessment of the answer.';
 
   // Question Breakdown Table (Across all booklet pages!)
   breakdownTbody.innerHTML = '';
@@ -280,14 +331,20 @@ function renderMarksheet(result) {
     }
 
     tr.innerHTML = `
-      <td><strong>${item.qNumber}</strong> ${isCurrentPageItem && isBooklet ? '<span style="font-size:10px; color:#60a5fa;">(viewing)</span>' : ''}</td>
+      <td><strong>${item.qNumber}</strong> ${isCurrentPageItem && isBooklet ? '<span style="font-size:10px; color:#286da9;">(viewing)</span>' : ''}</td>
       <td>${item.verticalSpan} px</td>
-      <td>${item.hasDiagram ? '⭐ Box/Diagram' : '—'}</td>
-      <td><strong style="color: ${item.marks >= 5 ? '#34d399' : '#f87171'}">${item.marks} / ${item.maxMarks}</strong></td>
+      <td>${item.hasDiagram ? 'Possible' : '—'}</td>
+      <td><strong style="color: ${item.marks >= 5 ? '#32784a' : '#ad4148'}">${item.marks} / ${item.maxMarks}</strong></td>
     `;
     breakdownTbody.appendChild(tr);
   }
 
+  if (!result.breakdown.length) {
+    const row = breakdownTbody.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 4;
+    cell.textContent = 'No answer regions detected. Try a clearer scan.';
+  }
   // Remarks List
   remarksList.innerHTML = '';
   for (const r of result.remarks) {
@@ -337,7 +394,10 @@ timeSlider.addEventListener('input', (e) => {
 chipBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     if (isLiveClock) {
-      simTimeToggleBtn.click();
+      isLiveClock = false;
+      simTimeToggleBtn.classList.add('active');
+      liveTimeToggleBtn.classList.remove('active');
+      scrubberContainer.style.display = 'flex';
     }
     const t = parseInt(btn.dataset.time, 10);
     timeSlider.value = t;
@@ -364,7 +424,8 @@ pdfNextBtn.addEventListener('click', () => {
 });
 
 presetBtns.forEach(btn => {
-  btn.addEventListener('click', async () => {
+  btn.addEventListener('click', () => withBusy(async () => {
+    documentName = btn.textContent.trim();
     presetBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const sampleFile = btn.dataset.sample;
@@ -376,12 +437,13 @@ presetBtns.forEach(btn => {
       await loadImage(`/samples/${sampleFile}`);
       await runEvaluation();
     }
-  });
+  }));
 });
 
-imageUploadInput.addEventListener('change', async (e) => {
+imageUploadInput.addEventListener('change', (e) => withBusy(async () => {
   const file = e.target.files[0];
   if (!file) return;
+  documentName = file.name;
 
   presetBtns.forEach(b => b.classList.remove('active'));
 
@@ -389,12 +451,15 @@ imageUploadInput.addEventListener('change', async (e) => {
     await loadPdfBooklet(file, file.name);
   } else {
     const url = URL.createObjectURL(file);
-    await loadImage(url);
-    await runEvaluation();
+    try {
+      await loadImage(url);
+      await runEvaluation();
+    } finally { URL.revokeObjectURL(url); }
   }
-});
+  imageUploadInput.value = '';
+}));
 
-evaluateBtn.addEventListener('click', runEvaluation);
+evaluateBtn.addEventListener('click', () => withBusy(runEvaluation));
 toggleBoxes.addEventListener('change', redrawCanvas);
 toggleRedPen.addEventListener('change', redrawCanvas);
 
@@ -411,6 +476,8 @@ toggleRedPen.addEventListener('change', redrawCanvas);
   initOcrModel();
 
   // Load first sample
-  await loadImage('/samples/sample1_flowchart.png');
-  await runEvaluation();
+  await withBusy(async () => {
+    await loadImage('/samples/sample1_flowchart.png');
+    await runEvaluation();
+  });
 })();

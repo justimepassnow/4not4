@@ -116,7 +116,7 @@ export function evaluateBooklet(pagesList, examinerMood) {
   }
 
   if (totalDiagrams > 0) {
-    remarks.push(`Diagram Volume (${totalDiagrams} Flowchart/Boxes Across Booklet): Total +${Math.round(totalDiagrams * 3.5 * 10) / 10} marks awarded for system architecture.`);
+    remarks.push(`Diagram Volume (${totalDiagrams} Flowchart/Boxes Across Booklet): Diagram bonus is capped at 4 marks per region, within its 10-mark maximum.`);
   } else {
     remarks.push("Zero Diagrams in Booklet: Student dared to submit pure text without arbitrary block diagrams.");
   }
@@ -124,7 +124,7 @@ export function evaluateBooklet(pagesList, examinerMood) {
   if (avgFillRatio > 0.55) {
     remarks.push("Heavy Paper Weight: Dense ink usage detected. Evaluator physically respected the booklet heft.");
   } else if (avgFillRatio < 0.25) {
-    remarks.push("Excessive Whitespace: Blatant disrespect to KTU answer booklet paper mills (-4 marks).");
+    remarks.push("Excessive Whitespace: Low detected coverage; no additional whitespace penalty applied.");
   }
 
   if (grade === "F") {

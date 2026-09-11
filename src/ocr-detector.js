@@ -1,10 +1,14 @@
+import { runCanvasFallback } from './canvas-detector.js';
+export { runCanvasFallback } from './canvas-detector.js';
 // PaddleOCR DBNet ONNX detector with canvas fallback
 
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
+import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
+import wasmModuleUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url';
 
 // Configure WASM paths
 try {
-  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+  ort.env.wasm.wasmPaths = { wasm: wasmUrl, mjs: wasmModuleUrl };
   ort.env.wasm.numThreads = 1;
 } catch (e) {
   console.warn('WASM config warning:', e);
@@ -49,6 +53,8 @@ export async function detectText(imageElement) {
 }
 
 async function runDbnetInference(session, img) {
+  const imageWidth = img.naturalWidth || img.width;
+  const imageHeight = img.naturalHeight || img.height;
   const targetW = 640;
   const targetH = 640;
 
@@ -58,9 +64,9 @@ async function runDbnetInference(session, img) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   // Letterbox draw
-  const scale = Math.min(targetW / img.naturalWidth, targetH / img.naturalHeight);
-  const renderW = Math.round(img.naturalWidth * scale);
-  const renderH = Math.round(img.naturalHeight * scale);
+  const scale = Math.min(targetW / imageWidth, targetH / imageHeight);
+  const renderW = Math.round(imageWidth * scale);
+  const renderH = Math.round(imageHeight * scale);
   const offsetX = Math.floor((targetW - renderW) / 2);
   const offsetY = Math.floor((targetH - renderH) / 2);
 
@@ -112,8 +118,8 @@ async function runDbnetInference(session, img) {
     // Rescale & unclip expand
     const unclipX = Math.max(0, (bx - 2) / scale);
     const unclipY = Math.max(0, (by - 2) / scale);
-    const unclipW = Math.min(img.naturalWidth - unclipX, (b.width + 4) / scale);
-    const unclipH = Math.min(img.naturalHeight - unclipY, (b.height + 4) / scale);
+    const unclipW = Math.min(imageWidth - unclipX, (b.width + 4) / scale);
+    const unclipH = Math.min(imageHeight - unclipY, (b.height + 4) / scale);
 
     if (unclipW > 10 && unclipH > 8) {
       finalBoxes.push({
@@ -175,79 +181,6 @@ function extractBoundingBoxes(binaryMap, width, height) {
         const bHeight = maxY - minY + 1;
         if (pixelCount > 15 && bWidth > 6 && bHeight > 4) {
           boxes.push({ x: minX, y: minY, width: bWidth, height: bHeight });
-        }
-      }
-    }
-  }
-
-  return boxes;
-}
-
-// Lightweight instant fallback using direct canvas thresholding & horizontal grouping
-export function runCanvasFallback(img) {
-  const w = img.naturalWidth || img.width;
-  const h = img.naturalHeight || img.height;
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(img, 0, 0, w, h);
-
-  const imgData = ctx.getImageData(0, 0, w, h).data;
-  const bin = new Uint8Array(w * h);
-
-  // Dark pixel detection (ink vs paper)
-  for (let i = 0; i < w * h; i++) {
-    const r = imgData[i * 4];
-    const g = imgData[i * 4 + 1];
-    const b = imgData[i * 4 + 2];
-    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    bin[i] = gray < 185 ? 1 : 0;
-  }
-
-  // Horizontal projection profile to detect text lines and diagrams
-  const rowDensity = new Float32Array(h);
-  for (let y = 0; y < h; y++) {
-    let sum = 0;
-    const offset = y * w;
-    for (let x = 0; x < w; x++) {
-      if (bin[offset + x] === 1) sum++;
-    }
-    rowDensity[y] = sum / w;
-  }
-
-  const boxes = [];
-  let inLine = false;
-  let lineStartY = 0;
-
-  for (let y = 0; y < h; y++) {
-    const isInkRow = rowDensity[y] > 0.015;
-    if (isInkRow && !inLine) {
-      inLine = true;
-      lineStartY = y;
-    } else if (!isInkRow && inLine) {
-      inLine = false;
-      const lineH = y - lineStartY;
-      if (lineH > 8) {
-        // Find horizontal bounds for this line
-        let minX = w, maxX = 0;
-        for (let ly = lineStartY; ly < y; ly++) {
-          const off = ly * w;
-          for (let x = 0; x < w; x++) {
-            if (bin[off + x] === 1) {
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-            }
-          }
-        }
-        if (maxX > minX && (maxX - minX) > 20) {
-          boxes.push({
-            x: Math.max(0, minX - 4),
-            y: Math.max(0, lineStartY - 2),
-            width: Math.min(w - minX, (maxX - minX) + 8),
-            height: lineH + 4,
-            engine: 'CanvasHeuristic'
-          });
         }
       }
     }

@@ -104,3 +104,13 @@ Made with ❤️ at TinkerHub Useless Projects
 
 
 
+
+
+### Valuation workspace
+The interface uses a responsive blue portal theme. Upload an image or PDF, toggle region outlines and marks, and navigate PDF pages to review the complete booklet report.
+
+Question markers are estimated from compact shapes in the left margin with nearby answer content. Without markers, large whitespace gaps separate regions. Labels such as R1 and P2-R1 identify detected regions, not recognised question numbers. Detached headers are excluded when a first answer marker is found. The existing satirical scoring and shift rules are preserved.
+
+The basic detector keeps thin strokes, separates margin markers from answer lines, and supports both image and PDF canvases. Detection remains geometric; handwriting recognition and semantic answer assessment are not included. ONNX runtime assets are bundled locally with the app.
+
+Run `npm test` for grouping, fallback detection, supplied image samples, and three-page PDF checks. Run `npm run build` for the production bundle.
