@@ -2,47 +2,50 @@
 
 
 
-# [Project Name] 🎯
-
+# KTU Valuator 3000 🎯
 
 ## Basic Details
-### Team Name: [Name]
-
+### Team Name: Supply Shenanigans
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: Akshay - TinkerHub
 
 ### Project Description
-[2-3 lines about what your project does]
+A satirical, in-browser answer sheet evaluation software inspired by Kerala KTU valuation memes. Instead of reading handwritten answers, it evaluates papers based on physical ink volume, answer vertical height, flowchart/box presence, and most importantly: the **exact time of evaluation** (pre-lunch hangry hour vs post-chaya nirvana).
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+KTU engineering professors spend countless hours agonizing over whether students actually answered the question or just drew a recursive system architecture diagram with 5 arrows and wrote lyrics in cursive.
 
 ### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
+An automated in-browser AI valuation cell powered by PaddleOCR DBNet (ONNX WASM) that ignores semantic words entirely and scores papers using authentic university valuation lore:
+- **Vertical Span Metric**: The longer the answer, the higher the marks.
+- **Diagram Multiplier**: Any box with arrows gets +3.5 marks automatically.
+- **Time-of-Valuation Mood Engine**:
+  - **12:30 PM (Pre-Lunch Hangry Hour)**: -25% penalty, 38/100 failure syndrome.
+  - **11:15 AM (Post-Chaya Nirvana)**: Sulaimani & Parippuvada high, +10 marks to everyone!
+  - **02:45 PM (Post-Lunch Food Coma)**: Flat 52/100 to everyone without looking.
+  - **04:50 PM (KSRTC Bus Rush)**: 5-second grading purely by diagram count.
 
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
-
-For Hardware:
-- [List main components]
-- [List specifications]
-- [List tools required]
+- Languages: JavaScript (ES Modules), HTML5 Canvas, CSS3
+- Frameworks/Tools: Vite
+- Machine Learning Engine: `onnxruntime-web` (PaddleOCR DBNet Mobile `ch_PP-OCRv3_det` in WebAssembly)
+- Image Processing: Canvas API, Adaptive Thresholding, Connected-Component Bounding Box Extraction
 
 ### Implementation
 For Software:
 # Installation
-[commands]
+```bash
+npm install
+```
 
 # Run
-[commands]
+```bash
+npm run dev
+```
+
 
 ### Project Documentation
 For Software:

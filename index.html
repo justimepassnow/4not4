@@ -1,1 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KTU Valuator 3000 — Satirical Answer Sheet Grading Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="university-logo">⚖️</div>
+        <div>
+          <h1 class="header-title">KTU VALUATOR 3000</h1>
+          <p class="header-subtitle">APJ Abdul Kalam Technological University • Automated Revaluation Cell</p>
+        </div>
+      </div>
 
+      <!-- Camp Clock & Valuation Time HUD -->
+      <div class="camp-clock-card">
+        <div class="clock-top">
+          <span class="live-dot"></span>
+          <span class="clock-label">CAMP OFFICIAL CLOCK</span>
+        </div>
+        <div class="clock-digits" id="clockDisplay">12:30 PM</div>
+        <div class="clock-controls">
+          <button id="liveTimeToggleBtn" class="pill-btn active">Live Clock</button>
+          <button id="simTimeToggleBtn" class="pill-btn">Simulate Shift</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Examiner Mood Banner & Shift Scrubber -->
+    <section class="examiner-hud-section">
+      <div class="time-scrubber-row" id="scrubberContainer" style="display: none;">
+        <span class="scrub-label">⏰ Scrub Valuation Shift:</span>
+        <input type="range" id="timeSlider" min="480" max="1320" step="15" value="750" class="custom-slider" />
+        <span id="sliderTimeLabel" class="time-pill">12:30 PM</span>
+        <div class="quick-presets">
+          <button class="chip-btn" data-time="675">🫖 11:15 AM (Chaya Break)</button>
+          <button class="chip-btn" data-time="750">🔥 12:30 PM (Hangry Hour)</button>
+          <button class="chip-btn" data-time="885">💤 02:45 PM (Food Coma)</button>
+          <button class="chip-btn" data-time="1010">🚌 04:50 PM (Bus Rush)</button>
+        </div>
+      </div>
+
+      <div class="examiner-status-grid">
+        <div class="status-card mood-card">
+          <div class="card-label">EXAMINER CAMP MOOD</div>
+          <div class="mood-title" id="moodTitle">Pre-Lunch Hangry Hour</div>
+          <div class="mood-quote" id="moodQuote">"Smells fish curry meals from the canteen. Extremely furious at long handwriting."</div>
+        </div>
+
+        <div class="status-card meter-card">
+          <div class="meter-group">
+            <div class="meter-header">
+              <span>Hunger Level</span>
+              <strong id="hungerVal">98%</strong>
+            </div>
+            <div class="meter-bar"><div class="meter-fill danger" id="hungerFill" style="width: 98%;"></div></div>
+          </div>
+          <div class="meter-group">
+            <div class="meter-header">
+              <span>Energy Level</span>
+              <strong id="energyVal">25%</strong>
+            </div>
+            <div class="meter-bar"><div class="meter-fill warning" id="energyFill" style="width: 25%;"></div></div>
+          </div>
+        </div>
+
+        <div class="status-card multiplier-card">
+          <div class="card-label">VALUATION MULTIPLIER</div>
+          <div class="mult-value" id="multiplierVal">0.65x</div>
+          <div class="mult-sub" id="multiplierStatus">Brutal Penalty Mode</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace: Ingestion + Canvas + Marksheet -->
+    <main class="main-layout">
+      <!-- Left Column: Controls & Canvas -->
+      <section class="viewer-column">
+        <!-- Control Bar -->
+        <div class="toolbar-card">
+          <div class="preset-group">
+            <span class="tb-label">Sample Sheets:</span>
+            <button class="preset-btn active" data-sample="sample1_flowchart.png">📦 Flowchart Flexer</button>
+            <button class="preset-btn" data-sample="sample2_dense_filler.png">📝 Sheet Filler</button>
+            <button class="preset-btn" data-sample="sample3_half_page.png">😭 Half-Page Despair</button>
+            <button class="preset-btn" data-sample="sample4_ktu_booklet.pdf" data-is-pdf="true">📑 3-Page Booklet (PDF)</button>
+          </div>
+
+          <div class="upload-group">
+            <label for="imageUploadInput" class="upload-btn">
+              <span>📄 Upload Paper / PDF</span>
+              <input type="file" id="imageUploadInput" accept="image/*,application/pdf,.pdf" />
+            </label>
+            <button id="evaluateBtn" class="action-btn">
+              <span id="evalBtnText">⚡ Evaluate Paper</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PDF Multi-Page Navigation Bar (visible for PDFs) -->
+        <div id="pdfPaginationBar" class="pdf-pagination-bar" style="display: none;">
+          <div class="pdf-nav-left">
+            <span class="pdf-tag">PDF BOOKLET ACTIVE</span>
+            <span id="pdfFileName" class="pdf-filename">booklet.pdf</span>
+          </div>
+          <div class="pdf-nav-controls">
+            <button id="pdfPrevBtn" class="pill-btn">◀ Prev Page</button>
+            <span id="pdfPageIndicator" class="page-indicator">Page 1 / 3</span>
+            <button id="pdfNextBtn" class="pill-btn">Next Page ▶</button>
+          </div>
+        </div>
+
+        <!-- Canvas Display -->
+        <div class="canvas-wrapper">
+          <div class="canvas-overlay-controls">
+            <label class="toggle-control">
+              <input type="checkbox" id="toggleBoxes" checked />
+              <span class="toggle-text">OCR Bounding Boxes</span>
+            </label>
+            <label class="toggle-control">
+              <input type="checkbox" id="toggleRedPen" checked />
+              <span class="toggle-text">Examiner Red-Pen Marks</span>
+            </label>
+          </div>
+          <div class="canvas-container" id="canvasContainer">
+            <canvas id="mainCanvas"></canvas>
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+              <div class="spinner"></div>
+              <div class="loading-text">Weighing Paper & Detecting Diagrams...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Official KTU Marksheet -->
+      <aside class="results-column">
+        <div class="marksheet-card" id="marksheetCard">
+          <div class="marksheet-header">
+            <div class="univ-sub">KERALA TECHNOLOGICAL UNIVERSITY</div>
+            <h2 class="marksheet-title">OFFICIAL VALUATION REPORT</h2>
+            <div class="bundle-id">EXAM BUNDLE: #KTU-CS301-2026</div>
+          </div>
+
+          <!-- Final Grade Banner -->
+          <div class="grade-banner" id="gradeBanner">
+            <div class="grade-circle" id="gradeBadge">F</div>
+            <div class="grade-info">
+              <div class="grade-score" id="scoreDisplay">38.5 / 100</div>
+              <div class="grade-status" id="passFailStatus">✖ REVALUATION MANDATORY</div>
+            </div>
+          </div>
+
+          <!-- Physical Paper Metrics -->
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-label">INK VOLUME</div>
+              <div class="metric-val" id="inkMetric">48%</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">DIAGRAMS FOUND</div>
+              <div class="metric-val" id="diagramMetric">2 (+7.0m)</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">MARGIN FILL</div>
+              <div class="metric-val" id="marginMetric">Aggressive</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">EST. WEIGHT</div>
+              <div class="metric-val" id="weightMetric">42 grams</div>
+            </div>
+          </div>
+
+          <!-- Question-wise Table -->
+          <div class="breakdown-section">
+            <h3 class="section-title">QUESTION-WISE MARKS BREAKDOWN</h3>
+            <table class="marks-table">
+              <thead>
+                <tr>
+                  <th>Q.No</th>
+                  <th>Answer Span</th>
+                  <th>Diagram</th>
+                  <th>Marks</th>
+                </tr>
+              </thead>
+              <tbody id="breakdownTbody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Troll Remarks -->
+          <div class="remarks-section">
+            <h3 class="section-title">EXAMINER SCRUTINY REMARKS</h3>
+            <ul class="remarks-list" id="remarksList">
+              <!-- Populated dynamically -->
+            </ul>
+          </div>
+
+          <!-- KTU Official Footer Stamp -->
+          <div class="marksheet-footer">
+            <div class="footer-seal">SEAL OF ARBITRARY VALUATION</div>
+            <div class="footer-note">*This evaluation conforms to KTU B.Tech Ordinance Section 42(a): Marks are inversely proportional to examiner hunger.</div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
