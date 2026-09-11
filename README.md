@@ -5,7 +5,7 @@
 # KTU Valuator 3000 🎯
 
 ## Basic Details
-### Team Name: Supply Shenanigans
+### Team Name: 4NOT4
 
 ### Team Members
 - Team Lead: Akshay Kumar A
