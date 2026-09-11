@@ -100,17 +100,54 @@ nav a {
   padding:14px 22px;
   color:#416c92;
   border-left:3px solid transparent;
+  cursor:pointer;
+  user-select:none;
+  transition:background .12s, color .12s;
 }
 
-nav a:first-child {
+nav a.active {
   background:#367abe;
   color:white;
   border-left-color:#10b8d1;
 }
 
-nav a:hover {
+nav a:hover:not(.active) {
   background:#c7dfef;
   color:#194f80;
+}
+
+/* Sidebar Tabbed View Modes */
+#app[data-view="canvas"] .examiner-hud-section,
+#app[data-view="canvas"] .results-column {
+  display:none !important;
+}
+
+#app[data-view="canvas"] .main-layout {
+  grid-template-columns:1fr;
+}
+
+#app[data-view="report"] .examiner-hud-section,
+#app[data-view="report"] .viewer-column {
+  display:none !important;
+}
+
+#app[data-view="report"] .main-layout {
+  grid-template-columns:1fr;
+  max-width:960px;
+  margin:0 auto;
+}
+
+#app[data-view="shift"] .main-layout {
+  display:none !important;
+}
+
+#app[data-view="shift"] .examiner-hud-section {
+  max-width:960px;
+  margin:0 auto;
+}
+
+#app[data-view="shift"] #scrubberContainer {
+  display:flex !important;
 }
 
 .sidebar-note {

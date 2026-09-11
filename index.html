@@ -11,10 +11,15 @@
   <aside class="portal-sidebar">
     <div class="portal-brand"><span class="brand-symbol">V</span><strong>Valuation portal<small>KTU Valuator 3000</small></strong></div>
     <div class="nav-label">WORKSPACE</div>
-    <nav aria-label="Main navigation"><a href="#workspace">▦ <span>Valuation dashboard</span></a><a href="#uploadPanel">↑ <span>Answer sheets</span></a><a href="#marksheetCard">▤ <span>Valuation report</span></a><a href="#shiftPanel">◷ <span>Examiner shift</span></a></nav>
+    <nav aria-label="Main navigation" id="sidebarNav">
+      <a href="#workspace" class="active" data-view="dashboard">▦ <span>Valuation dashboard</span></a>
+      <a href="#uploadPanel" data-view="canvas">↑ <span>Answer sheets</span></a>
+      <a href="#marksheetCard" data-view="report">▤ <span>Valuation report</span></a>
+      <a href="#shiftPanel" data-view="shift">◷ <span>Examiner shift</span></a>
+    </nav>
     <div class="sidebar-note"><strong>A little campus humour.</strong><p>An independent, satirical simulator inspired by the valuation camp.</p><span>Not affiliated with KTU</span></div>
   </aside>
-  <div id="app">
+  <div id="app" data-view="dashboard">
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-left">
@@ -39,7 +44,14 @@
       </div>
     </header>
 
-    <section class="page-heading" id="workspace"><div><div class="eyebrow">EXAMINATION / VALUATION</div><h2>Valuation dashboard</h2><p>Upload an answer sheet, explore a shift, and review the marks.</p></div><span class="session-badge">● Browser session</span></section>
+    <section class="page-heading" id="workspace">
+      <div>
+        <div class="eyebrow" id="pageEyebrow">EXAMINATION / VALUATION</div>
+        <h2 id="pageHeadingTitle">Valuation dashboard</h2>
+        <p id="pageHeadingDesc">Upload an answer sheet, explore a shift, and review the marks.</p>
+      </div>
+      <span class="session-badge">● Browser session</span>
+    </section>
     <div id="appStatus" class="app-status" role="status" aria-live="polite">Preparing sample sheet…</div>
     <!-- Examiner Mood Banner & Shift Scrubber -->
     <section class="examiner-hud-section" id="shiftPanel" aria-label="Examiner shift">

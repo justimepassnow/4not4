@@ -651,6 +651,55 @@ evaluateBtn.addEventListener('click', () => withBusy(runEvaluation));
 toggleBoxes.addEventListener('change', redrawCanvas);
 toggleRedPen.addEventListener('change', redrawCanvas);
 
+// Sidebar Tab Navigation
+const sidebarLinks = document.querySelectorAll('#sidebarNav a');
+const appContainer = document.getElementById('app');
+const pageEyebrow = document.getElementById('pageEyebrow');
+const pageHeadingTitle = document.getElementById('pageHeadingTitle');
+const pageHeadingDesc = document.getElementById('pageHeadingDesc');
+
+const viewHeaders = {
+  dashboard: {
+    eyebrow: 'EXAMINATION / VALUATION',
+    title: 'Valuation dashboard',
+    desc: 'Upload an answer sheet, explore a shift, and review the marks.'
+  },
+  canvas: {
+    eyebrow: 'INSPECTION / CANVAS',
+    title: 'Answer sheets & inspection',
+    desc: 'Inspect student handwriting, OCR detected regions, and examiner red-ink annotations.'
+  },
+  report: {
+    eyebrow: 'VALUATION / MARKSHEET',
+    title: 'Valuation report & marksheet',
+    desc: 'Moderation dice outcome, score breakdown, and examiner valuation remarks.'
+  },
+  shift: {
+    eyebrow: 'EXAMINER CAMP / MOOD',
+    title: 'Examiner shift & mood camp',
+    desc: 'Simulate time of day, examiner hunger levels, and grading multiplier shifts.'
+  }
+};
+
+sidebarLinks.forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const view = link.dataset.view || 'dashboard';
+    sidebarLinks.forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    appContainer.setAttribute('data-view', view);
+
+    const meta = viewHeaders[view] || viewHeaders.dashboard;
+    if (pageEyebrow) pageEyebrow.textContent = meta.eyebrow;
+    if (pageHeadingTitle) pageHeadingTitle.textContent = meta.title;
+    if (pageHeadingDesc) pageHeadingDesc.textContent = meta.desc;
+
+    if (view === 'canvas') {
+      redrawCanvas();
+    }
+  });
+});
+
 // Init
 (async function init() {
   updateTimeAndMood();
