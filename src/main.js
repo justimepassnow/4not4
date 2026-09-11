@@ -16,6 +16,8 @@ let currentGrouped = null;
 let currentResult = null;
 let currentMood = null;
 let busy = false;
+let isCheckingComplete = false;
+let currentDiceRoll = null;
 let documentName = 'Flowchart sample';
 const appStatus = document.getElementById('appStatus');
 function setStatus(message, error = false) {
@@ -30,6 +32,8 @@ async function withBusy(task) {
   try { await task(); }
   catch (error) {
     console.error(error);
+    isCheckingComplete = false;
+    currentDiceRoll = null;
     currentResult = null;
     currentGrouped = null;
     currentImage = null;
@@ -39,6 +43,7 @@ async function withBusy(task) {
     pdfPaginationBar.style.display = 'none';
     mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
     gradeBadge.textContent = '—';
+    gradeBadge.className = 'grade-circle';
     scoreDisplay.textContent = '— / 100';
     passFailStatus.textContent = 'Evaluation unavailable';
     breakdownTbody.replaceChildren();
@@ -54,6 +59,9 @@ async function withBusy(task) {
     pdfPrevBtn.disabled = currentPdfPage <= 1;
     pdfNextBtn.disabled = currentPdfPage >= totalPdfPages;
     loadingOverlay.style.display = 'none';
+    if (uploadProgressBarContainer) uploadProgressBarContainer.style.display = 'none';
+    if (gatewayTimeoutCard) gatewayTimeoutCard.style.display = 'none';
+    if (loadingContent) loadingContent.style.display = 'flex';
   }
 }
 
@@ -82,7 +90,13 @@ const multiplierStatus = document.getElementById('multiplierStatus');
 
 const mainCanvas = document.getElementById('mainCanvas');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingContent = document.getElementById('loadingContent');
 const loadingText = document.querySelector('.loading-text');
+const uploadProgressBarContainer = document.getElementById('uploadProgressBarContainer');
+const uploadProgressFill = document.getElementById('uploadProgressFill');
+const uploadProgressPct = document.getElementById('uploadProgressPct');
+const gatewayTimeoutCard = document.getElementById('gatewayTimeoutCard');
+const retryUploadBtn = document.getElementById('retryUploadBtn');
 const evaluateBtn = document.getElementById('evaluateBtn');
 const evalBtnText = document.getElementById('evalBtnText');
 const toggleBoxes = document.getElementById('toggleBoxes');
@@ -102,6 +116,10 @@ const pdfPageIndicator = document.getElementById('pdfPageIndicator');
 const gradeBadge = document.getElementById('gradeBadge');
 const scoreDisplay = document.getElementById('scoreDisplay');
 const passFailStatus = document.getElementById('passFailStatus');
+const diceFace = document.getElementById('diceFace');
+const diceTitle = document.getElementById('diceTitle');
+const diceSub = document.getElementById('diceSub');
+const rerollDiceBtn = document.getElementById('rerollDiceBtn');
 const inkMetric = document.getElementById('inkMetric');
 const diagramMetric = document.getElementById('diagramMetric');
 const marginMetric = document.getElementById('marginMetric');
@@ -190,6 +208,94 @@ async function loadPdfBooklet(fileOrUrl, filename = 'booklet.pdf') {
   }
 }
 
+function renderCheckingState(evaluatedPages = 0, totalPages = 1) {
+  gradeBadge.textContent = '…';
+  gradeBadge.className = 'grade-circle pending';
+  scoreDisplay.textContent = 'Checking…';
+  passFailStatus.className = 'grade-status';
+  passFailStatus.textContent = totalPages > 1
+    ? `Scrutinizing booklet (${evaluatedPages} / ${totalPages} pages)...`
+    : 'Scrutinizing answer sheet...';
+
+  if (diceFace) {
+    diceFace.textContent = '🎲';
+    diceFace.className = 'dice-face rolling';
+    diceTitle.textContent = 'Awaiting full scrutiny…';
+    diceSub.textContent = 'Moderation dice rolls only after all pages are evaluated.';
+    rerollDiceBtn.disabled = true;
+  }
+
+  document.getElementById('scoreExplanation').textContent =
+    'Valuation in progress. Grade and final marks are strictly withheld until the examiner finishes scrutinizing all pages.';
+
+  inkMetric.textContent = '…';
+  diagramMetric.textContent = '…';
+  marginMetric.textContent = totalPages > 1 ? `${evaluatedPages} / ${totalPages}` : '…';
+  weightMetric.textContent = '…';
+
+  remarksList.innerHTML = '<li>⏳ Examiner is flipping through booklet. Final remarks withheld until scrutiny is complete.</li>';
+
+  breakdownTbody.innerHTML = `
+    <tr>
+      <td colspan="4" style="text-align:center; padding: 22px; color:#647d92; font-style:italic;">
+        🔍 Scrutinizing pages... Region marks sealed until valuation completes.
+      </td>
+    </tr>
+  `;
+}
+
+async function simulateUploadWithGatewayTimeout(filename) {
+  loadingOverlay.style.display = 'flex';
+  loadingContent.style.display = 'flex';
+  gatewayTimeoutCard.style.display = 'none';
+  uploadProgressBarContainer.style.display = 'block';
+  uploadProgressFill.style.width = '0%';
+  uploadProgressPct.textContent = '0%';
+  loadingText.textContent = `Uploading "${filename}" to KTU valuation portal...`;
+
+  const triggerTimeout = Math.random() < 0.5; // Exactly 50% chance of 504 Gateway Timeout
+  const timeoutTarget = 97;
+  const targetPct = triggerTimeout ? timeoutTarget : 100;
+  const stages = [18, 38, 59, 78, 89, 94, targetPct];
+
+  for (const pct of stages) {
+    await new Promise(r => setTimeout(r, 90));
+    uploadProgressFill.style.width = `${pct}%`;
+    uploadProgressPct.textContent = `${pct}%`;
+  }
+
+  if (triggerTimeout) {
+    await new Promise(r => setTimeout(r, 250));
+    loadingContent.style.display = 'none';
+    gatewayTimeoutCard.style.display = 'block';
+
+    await new Promise((resolve) => {
+      const onRetry = () => {
+        retryUploadBtn.removeEventListener('click', onRetry);
+        resolve();
+      };
+      retryUploadBtn.addEventListener('click', onRetry);
+    });
+
+    gatewayTimeoutCard.style.display = 'none';
+    loadingContent.style.display = 'flex';
+    loadingText.textContent = 'Reconnecting to KTU Valuation gateway (camp node)...';
+    uploadProgressBarContainer.style.display = 'block';
+
+    await new Promise(r => setTimeout(r, 180));
+    uploadProgressFill.style.width = '99%';
+    uploadProgressPct.textContent = '99%';
+    await new Promise(r => setTimeout(r, 180));
+    uploadProgressFill.style.width = '100%';
+    uploadProgressPct.textContent = '100%';
+    loadingText.textContent = 'Upload complete! Ingesting answer sheet...';
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  uploadProgressBarContainer.style.display = 'none';
+  return true;
+}
+
 async function switchPdfViewPage(pageNum) {
   if (!isPdfMode || !currentPdfDoc) return;
   currentPdfPage = Math.max(1, Math.min(pageNum, totalPdfPages));
@@ -211,7 +317,7 @@ async function switchPdfViewPage(pageNum) {
         boxes
       };
       const allEvaluated = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
-      currentResult = evaluateBooklet(allEvaluated, currentMood);
+      currentResult = evaluateBooklet(allEvaluated, currentMood, currentDiceRoll || 6);
     } finally {
       loadingOverlay.style.display = 'none';
     }
@@ -224,12 +330,18 @@ async function switchPdfViewPage(pageNum) {
     currentBoxes = pageData.boxes;
 
     redrawCanvas();
-    renderMarksheet(currentResult);
+    if (isCheckingComplete) {
+      renderMarksheet(currentResult);
+    } else {
+      renderCheckingState(Object.keys(bookletPagesCache).length, totalPdfPages);
+    }
   }
 }
 
 // Evaluate Paper / Booklet Workflow
 async function runEvaluation() {
+  isCheckingComplete = false;
+  currentDiceRoll = null;
   loadingOverlay.style.display = 'flex';
   evalBtnText.textContent = 'Evaluating…';
   evaluateBtn.disabled = true;
@@ -237,6 +349,8 @@ async function runEvaluation() {
   const evaluationMood = { ...currentMood };
   try {
     if (isPdfMode && currentPdfDoc) {
+      renderCheckingState(Object.keys(bookletPagesCache).length, totalPdfPages);
+
       // 1. Evaluate the active page first for instantaneous responsiveness
       if (loadingText) loadingText.textContent = `Scrutinizing Page ${currentPdfPage} of ${totalPdfPages}...`;
       if (!bookletPagesCache[currentPdfPage]) {
@@ -256,10 +370,10 @@ async function runEvaluation() {
       currentImage = activePage.canvas;
       currentGrouped = activePage.groupedData;
       currentBoxes = activePage.boxes;
-      currentResult = evaluateBooklet(Object.values(bookletPagesCache), evaluationMood);
+      currentResult = evaluateBooklet(Object.values(bookletPagesCache), evaluationMood, 6);
 
       redrawCanvas();
-      renderMarksheet(currentResult);
+      renderCheckingState(Object.keys(bookletPagesCache).length, totalPdfPages);
       loadingOverlay.style.display = 'none';
 
       // 2. Background queue for remaining pages of large booklets
@@ -278,8 +392,10 @@ async function runEvaluation() {
                 boxes: pBoxes
               };
               const evaluatedSoFar = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
-              currentResult = evaluateBooklet(evaluatedSoFar, evaluationMood);
-              renderMarksheet(currentResult);
+              currentResult = evaluateBooklet(evaluatedSoFar, evaluationMood, 6);
+              if (!isCheckingComplete) {
+                renderCheckingState(evaluatedSoFar.length, totalPdfPages);
+              }
               setStatus(`${documentName} · ${evaluatedSoFar.length}/${totalPdfPages} pages evaluated`);
             } catch (e) {
               console.warn(`Error processing page ${i}:`, e);
@@ -288,7 +404,11 @@ async function runEvaluation() {
         }
         if (isPdfMode) {
           const finalAll = Object.values(bookletPagesCache).sort((a, b) => a.pageNumber - b.pageNumber);
-          currentResult = evaluateBooklet(finalAll, evaluationMood);
+          if (!currentDiceRoll) {
+            currentDiceRoll = Math.floor(Math.random() * 6) + 1;
+          }
+          currentResult = evaluateBooklet(finalAll, evaluationMood, currentDiceRoll);
+          isCheckingComplete = true;
           renderMarksheet(currentResult);
           redrawCanvas();
           setStatus(`${documentName} · ${finalAll.length} page(s) evaluated · Full Booklet Scrutinized`);
@@ -296,6 +416,7 @@ async function runEvaluation() {
       })();
     } else if (currentImage) {
       // Single Image Evaluation
+      renderCheckingState(0, 1);
       if (loadingText) loadingText.textContent = 'Detecting handwriting & diagrams...';
       currentBoxes = await detectText(currentImage);
       const w = currentImage.naturalWidth || currentImage.width;
@@ -311,7 +432,11 @@ async function runEvaluation() {
         }
       };
 
-      currentResult = evaluateBooklet([bookletPagesCache[1]], evaluationMood);
+      if (!currentDiceRoll) {
+        currentDiceRoll = Math.floor(Math.random() * 6) + 1;
+      }
+      currentResult = evaluateBooklet([bookletPagesCache[1]], evaluationMood, currentDiceRoll);
+      isCheckingComplete = true;
       redrawCanvas();
       renderMarksheet(currentResult);
       const engines = [...new Set(currentBoxes.map(box => box.engine))];
@@ -398,6 +523,21 @@ function renderMarksheet(result) {
     cell.colSpan = 4;
     cell.textContent = 'No answer regions detected. Try a clearer scan.';
   }
+  // Moderation Dice Presentation
+  if (diceFace && result.diceRoll) {
+    const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    diceFace.className = 'dice-face';
+    diceFace.textContent = diceIcons[result.diceRoll - 1] || '🎲';
+    if (result.diceRoll >= 4) {
+      diceTitle.textContent = `Roll ${result.diceRoll} — High Roll! (${result.diceEffect?.chopPct || '0%'} chopped)`;
+      diceSub.textContent = `High number rolled! Calculated marks (${result.baseMarks}) not reduced too much. Passed!`;
+    } else {
+      diceTitle.textContent = `Roll ${result.diceRoll} — Low Roll! (${result.diceEffect?.chopPct || '50%'} chopped)`;
+      diceSub.textContent = `Low number rolled! Calculated marks (${result.baseMarks}) chopped down to ${result.totalMarks} (Failed).`;
+    }
+    rerollDiceBtn.disabled = false;
+  }
+
   // Remarks List
   remarksList.innerHTML = '';
   for (const r of result.remarks) {
@@ -408,14 +548,33 @@ function renderMarksheet(result) {
 }
 
 // Event Listeners
+rerollDiceBtn.addEventListener('click', async () => {
+  if (!isCheckingComplete || busy) return;
+  rerollDiceBtn.disabled = true;
+  diceFace.className = 'dice-face rolling';
+  const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+  for (let i = 0; i < 6; i++) {
+    diceFace.textContent = diceIcons[Math.floor(Math.random() * 6)];
+    await new Promise(r => setTimeout(r, 60));
+  }
+  currentDiceRoll = Math.floor(Math.random() * 6) + 1;
+  diceFace.className = 'dice-face';
+  if (Object.keys(bookletPagesCache).length > 0) {
+    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll);
+    redrawCanvas();
+    renderMarksheet(currentResult);
+  }
+  rerollDiceBtn.disabled = false;
+});
+
 liveTimeToggleBtn.addEventListener('click', () => {
   isLiveClock = true;
   liveTimeToggleBtn.classList.add('active');
   simTimeToggleBtn.classList.remove('active');
   scrubberContainer.style.display = 'none';
   updateTimeAndMood();
-  if (Object.keys(bookletPagesCache).length > 0) {
-    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood);
+  if (isCheckingComplete && Object.keys(bookletPagesCache).length > 0) {
+    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll || 6);
     redrawCanvas();
     renderMarksheet(currentResult);
   }
@@ -427,8 +586,8 @@ simTimeToggleBtn.addEventListener('click', () => {
   liveTimeToggleBtn.classList.remove('active');
   scrubberContainer.style.display = 'flex';
   updateTimeAndMood();
-  if (Object.keys(bookletPagesCache).length > 0) {
-    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood);
+  if (isCheckingComplete && Object.keys(bookletPagesCache).length > 0) {
+    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll || 6);
     redrawCanvas();
     renderMarksheet(currentResult);
   }
@@ -437,8 +596,8 @@ simTimeToggleBtn.addEventListener('click', () => {
 timeSlider.addEventListener('input', (e) => {
   simulatedMinutes = parseInt(e.target.value, 10);
   updateTimeAndMood();
-  if (Object.keys(bookletPagesCache).length > 0) {
-    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood);
+  if (isCheckingComplete && Object.keys(bookletPagesCache).length > 0) {
+    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll || 6);
     redrawCanvas();
     renderMarksheet(currentResult);
   }
@@ -456,8 +615,8 @@ chipBtns.forEach(btn => {
     timeSlider.value = t;
     simulatedMinutes = t;
     updateTimeAndMood();
-    if (Object.keys(bookletPagesCache).length > 0) {
-      currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood);
+    if (isCheckingComplete && Object.keys(bookletPagesCache).length > 0) {
+      currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll || 6);
       redrawCanvas();
       renderMarksheet(currentResult);
     }
@@ -499,6 +658,9 @@ imageUploadInput.addEventListener('change', (e) => withBusy(async () => {
   documentName = file.name;
 
   presetBtns.forEach(b => b.classList.remove('active'));
+
+  const uploadSuccess = await simulateUploadWithGatewayTimeout(file.name);
+  if (!uploadSuccess) return;
 
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
     await loadPdfBooklet(file, file.name);

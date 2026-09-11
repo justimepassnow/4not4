@@ -503,6 +503,118 @@ nav a:hover {
   justify-content:center;
   flex-direction:column;
   gap:15px;
+  z-index:20;
+}
+
+.loading-content {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+}
+
+.upload-progress-container {
+  width:240px;
+  margin-top:6px;
+  text-align:center;
+}
+
+.upload-progress-bar {
+  width:100%;
+  height:8px;
+  background:#d5e4f2;
+  border-radius:6px;
+  overflow:hidden;
+  border:1px solid #bfd5ea;
+}
+
+.upload-progress-fill {
+  height:100%;
+  background:linear-gradient(90deg, #3478bd, #559be6);
+  border-radius:6px;
+  transition:width 0.15s ease-out;
+}
+
+.upload-progress-pct {
+  font-size:11px;
+  font-weight:600;
+  color:#316c9e;
+  margin-top:6px;
+  font-variant-numeric:tabular-nums;
+}
+
+.gateway-timeout-box {
+  background:#fff5f5;
+  border:2px solid #e05260;
+  border-radius:8px;
+  padding:22px 26px;
+  max-width:440px;
+  margin:15px;
+  text-align:center;
+  box-shadow:0 8px 30px rgba(220, 53, 69, 0.2);
+  animation:popIn 0.25s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity:0; transform:scale(0.92); }
+  to { opacity:1; transform:scale(1); }
+}
+
+.timeout-code {
+  font-size:12px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-weight:700;
+  letter-spacing:1px;
+  color:#b02a37;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.timeout-title {
+  font-size:22px;
+  font-weight:800;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  color:#b02a37;
+  letter-spacing:-0.5px;
+  margin:0 0 10px;
+}
+
+.timeout-desc {
+  font-size:13px;
+  color:#491217;
+  line-height:1.5;
+  margin:0 0 12px;
+}
+
+.timeout-sub {
+  font-size:11px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  color:#842029;
+  background:#f8d7da;
+  border:1px dashed #f1aeb5;
+  border-radius:4px;
+  padding:7px 10px;
+  margin-bottom:18px;
+  line-height:1.4;
+}
+
+.danger-retry-btn {
+  background:#dc3545;
+  color:white;
+  border:1px solid #b02a37;
+  padding:9px 20px;
+  border-radius:5px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(220, 53, 69, 0.35);
+  transition:all 0.15s ease;
+}
+
+.danger-retry-btn:hover {
+  background:#bb2d3b;
+  transform:translateY(-1px);
 }
 
 .loading-text {
@@ -553,6 +665,95 @@ nav a:hover {
   color:#eef6ff;
 }
 
+.dice-card {
+  background:#edf4fb;
+  border:1px solid #cce0f2;
+  border-radius:6px;
+  padding:10px 14px;
+  margin-bottom:12px;
+}
+
+.dice-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.dice-badge {
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.8px;
+  color:#3b74a3;
+}
+
+.dice-reroll-btn {
+  font-size:11px;
+  padding:3px 9px;
+  background:#347cbd;
+  color:white;
+  border:1px solid #2b71b4;
+  border-radius:4px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.dice-reroll-btn:hover:not(:disabled) {
+  background:#2568a2;
+}
+
+.dice-reroll-btn:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+.dice-body {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.dice-face {
+  font-size:32px;
+  line-height:1;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  background:white;
+  border:1px solid #cbdbee;
+  border-radius:6px;
+  color:#2b71b4;
+  user-select:none;
+}
+
+.dice-face.rolling {
+  animation:diceWiggle .15s infinite alternate;
+}
+
+@keyframes diceWiggle {
+  from { transform:rotate(-12deg) scale(0.95); }
+  to { transform:rotate(12deg) scale(1.05); }
+}
+
+.dice-details {
+  flex:1;
+  min-width:0;
+}
+
+.dice-title {
+  font-size:13px;
+  font-weight:700;
+  color:#244b6b;
+  margin-bottom:2px;
+}
+
+.dice-sub {
+  font-size:11px;
+  color:#5c7890;
+  line-height:1.35;
+}
+
 .grade-banner {
   display:flex;
   align-items:center;
@@ -577,6 +778,19 @@ nav a:hover {
   background:#eaf5e5;
   border-color:#cbdcbc;
   color:#408049;
+}
+
+.grade-circle.pending {
+  background:#f0f4f8;
+  border-color:#cbdbee;
+  color:#5a7d9a;
+  font-size:22px;
+  animation:pulseOpacity 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseOpacity {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 .grade-score {

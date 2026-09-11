@@ -1,10 +1,10 @@
 // Satirical KTU evaluation grading algorithm (Single page and multi-page booklet)
 
-export function evaluateAnswers(groupedData, examinerMood) {
-  return evaluateBooklet([{ pageNumber: 1, groupedData }], examinerMood);
+export function evaluateAnswers(groupedData, examinerMood, diceRoll = 6) {
+  return evaluateBooklet([{ pageNumber: 1, groupedData }], examinerMood, diceRoll);
 }
 
-export function evaluateBooklet(pagesList, examinerMood) {
+export function evaluateBooklet(pagesList, examinerMood, diceRoll = 6) {
   if (!pagesList || pagesList.length === 0) {
     return {
       totalMarks: 0,
@@ -101,7 +101,30 @@ export function evaluateBooklet(pagesList, examinerMood) {
     finalScore = 38.5; // Classic KTU borderline fail
   }
 
-  finalScore = Math.min(100, Math.max(0, Math.round(finalScore * 10) / 10));
+  const baseScore = Math.min(100, Math.max(0, Math.round(finalScore * 10) / 10));
+
+  // Moderation Dice Fate: High number = marks preserved; Low number = marks chopped
+  const diceEffects = {
+    6: { factor: 1.00, chopPct: '0%', text: 'Roll 6 (Pure Mercy) — 0% marks chopped. Full marks preserved.' },
+    5: { factor: 0.95, chopPct: '5%', text: 'Roll 5 (Gentle Touch) — Only 5% marks chopped. Safe pass intact.' },
+    4: { factor: 0.88, chopPct: '12%', text: 'Roll 4 (Standard Trim) — 12% chopped. Passing grade maintained.' },
+    3: { factor: 0.55, chopPct: '45%', text: 'Roll 3 (Mark Chopper) — 45% chopped! Drops below 40 (Borderline Fail).' },
+    2: { factor: 0.40, chopPct: '60%', text: 'Roll 2 (Camp Guillotine) — 60% chopped! Supplementary exam confirmed.' },
+    1: { factor: 0.25, chopPct: '75%', text: 'Roll 1 (Catastrophic 1) — 75% chopped! Evaluator tore booklet.' }
+  };
+
+  const roll = Math.max(1, Math.min(6, parseInt(diceRoll, 10) || 6));
+  const effect = diceEffects[roll];
+
+  let postDiceScore;
+  if (roll <= 3) {
+    postDiceScore = Math.min(38.5, Math.round(baseScore * effect.factor * 10) / 10);
+  } else {
+    postDiceScore = baseScore >= 40
+      ? Math.max(40.0, Math.round(baseScore * effect.factor * 10) / 10)
+      : Math.round(baseScore * effect.factor * 10) / 10;
+  }
+  finalScore = Math.min(100, Math.max(0, Math.round(postDiceScore * 10) / 10));
 
   // Determine KTU Grade
   let grade = "F";
@@ -118,6 +141,7 @@ export function evaluateBooklet(pagesList, examinerMood) {
 
   // Context-aware troll remarks for the entire booklet
   const remarks = [];
+  remarks.push(`🎲 Moderation Dice [Roll ${roll}/6]: ${effect.text} (Calculated ${baseScore} → Final ${finalScore}/100)`);
   remarks.push(`Valuation Shift (${examinerMood.time}): ${examinerMood.status} - "${examinerMood.quote}"`);
 
   if (pagesList.length > 1) {
@@ -146,6 +170,9 @@ export function evaluateBooklet(pagesList, examinerMood) {
 
   return {
     totalMarks: finalScore,
+    baseMarks: baseScore,
+    diceRoll: roll,
+    diceEffect: effect,
     maxMarks: 100,
     grade,
     isPassed: finalScore >= 40,
