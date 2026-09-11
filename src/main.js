@@ -119,7 +119,6 @@ const passFailStatus = document.getElementById('passFailStatus');
 const diceFace = document.getElementById('diceFace');
 const diceTitle = document.getElementById('diceTitle');
 const diceSub = document.getElementById('diceSub');
-const rerollDiceBtn = document.getElementById('rerollDiceBtn');
 const inkMetric = document.getElementById('inkMetric');
 const diagramMetric = document.getElementById('diagramMetric');
 const marginMetric = document.getElementById('marginMetric');
@@ -222,7 +221,6 @@ function renderCheckingState(evaluatedPages = 0, totalPages = 1) {
     diceFace.className = 'dice-face rolling';
     diceTitle.textContent = 'Awaiting full scrutiny…';
     diceSub.textContent = 'Moderation dice rolls only after all pages are evaluated.';
-    rerollDiceBtn.disabled = true;
   }
 
   document.getElementById('scoreExplanation').textContent =
@@ -528,12 +526,13 @@ function renderMarksheet(result) {
     diceFace.textContent = diceIcons[result.diceRoll - 1] || '🎲';
     if (result.diceRoll >= 4) {
       diceTitle.textContent = `Roll ${result.diceRoll} — High Roll! (${result.diceEffect?.chopPct || '0%'} chopped)`;
-      diceSub.textContent = `High number rolled! Calculated marks (${result.baseMarks}) not reduced too much. Passed!`;
+      diceSub.textContent = result.isPassed
+        ? `High roll! Calculated marks (${result.baseMarks}) not reduced too much. Passed!`
+        : `High roll (${result.diceEffect?.chopPct} chopped), but base marks (${result.baseMarks}) were already below 40.`;
     } else {
       diceTitle.textContent = `Roll ${result.diceRoll} — Low Roll! (${result.diceEffect?.chopPct || '50%'} chopped)`;
-      diceSub.textContent = `Low number rolled! Calculated marks (${result.baseMarks}) chopped down to ${result.totalMarks} (Failed).`;
+      diceSub.textContent = `Low roll! Marks chopped down from ${result.baseMarks} to ${result.totalMarks} (Failed).`;
     }
-    rerollDiceBtn.disabled = false;
   }
 
   // Remarks List
@@ -546,25 +545,6 @@ function renderMarksheet(result) {
 }
 
 // Event Listeners
-rerollDiceBtn.addEventListener('click', async () => {
-  if (!isCheckingComplete || busy) return;
-  rerollDiceBtn.disabled = true;
-  diceFace.className = 'dice-face rolling';
-  const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-  for (let i = 0; i < 6; i++) {
-    diceFace.textContent = diceIcons[Math.floor(Math.random() * 6)];
-    await new Promise(r => setTimeout(r, 60));
-  }
-  currentDiceRoll = Math.floor(Math.random() * 6) + 1;
-  diceFace.className = 'dice-face';
-  if (Object.keys(bookletPagesCache).length > 0) {
-    currentResult = evaluateBooklet(Object.values(bookletPagesCache), currentMood, currentDiceRoll);
-    redrawCanvas();
-    renderMarksheet(currentResult);
-  }
-  rerollDiceBtn.disabled = false;
-});
-
 liveTimeToggleBtn.addEventListener('click', () => {
   isLiveClock = true;
   liveTimeToggleBtn.classList.add('active');

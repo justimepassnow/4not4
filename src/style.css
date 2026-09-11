@@ -675,7 +675,6 @@ nav a:hover {
 
 .dice-header {
   display:flex;
-  justify-content:space-between;
   align-items:center;
   margin-bottom:6px;
 }
@@ -685,26 +684,6 @@ nav a:hover {
   font-weight:700;
   letter-spacing:.8px;
   color:#3b74a3;
-}
-
-.dice-reroll-btn {
-  font-size:11px;
-  padding:3px 9px;
-  background:#347cbd;
-  color:white;
-  border:1px solid #2b71b4;
-  border-radius:4px;
-  cursor:pointer;
-  font-weight:600;
-}
-
-.dice-reroll-btn:hover:not(:disabled) {
-  background:#2568a2;
-}
-
-.dice-reroll-btn:disabled {
-  opacity:.5;
-  cursor:not-allowed;
 }
 
 .dice-body {
