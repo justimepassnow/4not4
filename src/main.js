@@ -41,7 +41,6 @@ async function withBusy(task) {
     bookletPagesCache = {};
     isPdfMode = false;
     pdfPaginationBar.style.display = 'none';
-    mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
     gradeBadge.textContent = '—';
     gradeBadge.className = 'grade-circle';
     scoreDisplay.textContent = '— / 100';
@@ -170,6 +169,7 @@ async function loadImage(url) {
       bookletPagesCache = {};
       pdfPaginationBar.style.display = 'none';
       loadingOverlay.style.display = 'none';
+      redrawCanvas();
       resolve(img);
     };
     img.onerror = (err) => {
@@ -196,6 +196,11 @@ async function loadPdfBooklet(fileOrUrl, filename = 'booklet.pdf') {
     pdfPageIndicator.textContent = `Page 1 / ${totalPdfPages}`;
     pdfPrevBtn.disabled = true;
     pdfNextBtn.disabled = totalPdfPages <= 1;
+
+    // Immediately display page 1 canvas
+    const firstCanvas = await renderPdfPage(currentPdfDoc, 1, 1.5);
+    currentImage = firstCanvas;
+    redrawCanvas();
 
     // Run full booklet evaluation across all pages
     await runEvaluation();
@@ -241,27 +246,30 @@ function renderCheckingState(evaluatedPages = 0, totalPages = 1) {
   `;
 }
 
+let hasDroppedUploadOnce = false;
+
 async function simulateUploadWithGatewayTimeout(filename) {
   loadingOverlay.style.display = 'flex';
   loadingContent.style.display = 'flex';
-  gatewayTimeoutCard.style.display = 'none';
+  if (gatewayTimeoutScreen) gatewayTimeoutScreen.style.display = 'none';
   uploadProgressBarContainer.style.display = 'block';
   uploadProgressFill.style.width = '0%';
   uploadProgressPct.textContent = '0%';
   loadingText.textContent = `Uploading "${filename}" to KTU valuation portal...`;
 
-  const triggerTimeout = Math.random() < 0.5; // Exactly 50% chance of 504 Gateway Timeout
+  const triggerTimeout = !hasDroppedUploadOnce && (Math.random() < 0.5);
   const timeoutTarget = 97;
   const targetPct = triggerTimeout ? timeoutTarget : 100;
   const stages = [18, 38, 59, 78, 89, 94, targetPct];
 
   for (const pct of stages) {
-    await new Promise(r => setTimeout(r, 90));
+    await new Promise(r => setTimeout(r, 80));
     uploadProgressFill.style.width = `${pct}%`;
     uploadProgressPct.textContent = `${pct}%`;
   }
 
   if (triggerTimeout) {
+    hasDroppedUploadOnce = true;
     await new Promise(r => setTimeout(r, 250));
     loadingOverlay.style.display = 'none';
     uploadProgressBarContainer.style.display = 'none';
@@ -285,6 +293,7 @@ async function simulateUploadWithGatewayTimeout(filename) {
     return false;
   }
 
+  hasDroppedUploadOnce = false;
   uploadProgressBarContainer.style.display = 'none';
   return true;
 }
@@ -445,16 +454,25 @@ async function runEvaluation() {
 }
 
 function redrawCanvas() {
-  if (!currentImage || !currentGrouped || !currentResult) return;
-  renderEvaluationCanvas({
-    canvas: mainCanvas,
-    image: currentImage,
-    groupedData: currentGrouped,
-    evaluationResult: currentResult,
-    showBoxes: toggleBoxes.checked,
-    showRedPen: toggleRedPen.checked,
-    currentPageNumber: currentPdfPage
-  });
+  if (!currentImage) return;
+  const ctx = mainCanvas.getContext('2d');
+  const w = currentImage.naturalWidth || currentImage.width;
+  const h = currentImage.naturalHeight || currentImage.height;
+  mainCanvas.width = w;
+  mainCanvas.height = h;
+  ctx.drawImage(currentImage, 0, 0, w, h);
+
+  if (currentGrouped && currentResult) {
+    renderEvaluationCanvas({
+      canvas: mainCanvas,
+      image: currentImage,
+      groupedData: currentGrouped,
+      evaluationResult: currentResult,
+      showBoxes: toggleBoxes.checked,
+      showRedPen: toggleRedPen.checked,
+      currentPageNumber: currentPdfPage
+    });
+  }
 }
 
 function renderMarksheet(result) {

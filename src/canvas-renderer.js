@@ -21,6 +21,8 @@ export function renderEvaluationCanvas({
   // 1. Draw base student answer sheet
   ctx.drawImage(image, 0, 0, w, h);
 
+  if (!groupedData) return;
+
   const { questions } = groupedData;
 
   // 2. Render OCR Bounding Boxes Layer
