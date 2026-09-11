@@ -100,7 +100,6 @@ const evalBtnText = document.getElementById('evalBtnText');
 const toggleBoxes = document.getElementById('toggleBoxes');
 const toggleRedPen = document.getElementById('toggleRedPen');
 const imageUploadInput = document.getElementById('imageUploadInput');
-const presetBtns = document.querySelectorAll('.preset-btn');
 const chipBtns = document.querySelectorAll('.chip-btn');
 
 // PDF DOM Elements
@@ -628,29 +627,10 @@ pdfNextBtn.addEventListener('click', async () => {
   }
 });
 
-presetBtns.forEach(btn => {
-  btn.addEventListener('click', () => withBusy(async () => {
-    documentName = btn.textContent.trim();
-    presetBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const sampleFile = btn.dataset.sample;
-    const isPdf = btn.dataset.isPdf === 'true';
-
-    if (isPdf) {
-      await loadPdfBooklet(`/samples/${sampleFile}`, sampleFile);
-    } else {
-      await loadImage(`/samples/${sampleFile}`);
-      await runEvaluation();
-    }
-  }));
-});
-
 imageUploadInput.addEventListener('change', (e) => withBusy(async () => {
   const file = e.target.files[0];
   if (!file) return;
   documentName = file.name;
-
-  presetBtns.forEach(b => b.classList.remove('active'));
 
   const uploadSuccess = await simulateUploadWithGatewayTimeout(file.name);
   if (!uploadSuccess) return;

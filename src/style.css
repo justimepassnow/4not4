@@ -407,19 +407,6 @@ nav a:hover {
   color:#346c9e;
 }
 
-.preset-group {
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  align-items:center;
-}
-
-.tb-label {
-  font-size:11px;
-  width:100%;
-  color:var(--muted);
-}
-
 .upload-group {
   display:flex;
   gap:8px;
