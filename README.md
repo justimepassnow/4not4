@@ -11,6 +11,9 @@ Website link : 4not4.pages.dev
 - Team Lead: Akshay Kumar A
 - Member: Anoop B
 
+### Hosted Project Link (Website)
+[https://4not4.pages.dev](https://4not4.pages.dev)
+
 ### Project Description
 A satirical, in-browser answer sheet evaluation software inspired by Kerala KTU valuation memes. Instead of reading handwritten answers, it evaluates papers based on physical ink volume, answer vertical height, flowchart/box presence, and most importantly: the **exact time of evaluation** (pre-lunch hangry hour vs post-chaya nirvana).
 
@@ -74,7 +77,7 @@ flowchart LR
 
 ## Team Contributions
 - Akshay Kumar A: Full-stack architecture, ONNX DBNet text-region detection integration, satirical valuation scoring algorithms, examiner shift/mood simulation, HTML5 canvas red-pen annotation engine, and tabbed valuation portal.
-- Anoob B: KTU multi-page answer booklet testing, valuation rules validation, sample answer sheet curation, and edge-case testing.
+- Anoop B: KTU multi-page answer booklet testing, valuation rules validation, sample answer sheet curation, and edge-case testing.
 
 ### Valuation Workspace
 The interface uses ktu theme. Upload an image or PDF, toggle region outlines and marks, and navigate PDF pages to review the complete booklet report.
