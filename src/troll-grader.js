@@ -124,18 +124,9 @@ export function evaluateBooklet(pagesList, examinerMood, diceRoll = 6) {
       ? Math.max(40.0, Math.round(baseScore * effect.factor * 10) / 10)
       : Math.round(baseScore * effect.factor * 10) / 10;
   }
-  finalScore = Math.min(100, Math.max(0, Math.round(postDiceScore * 10) / 10));
+  finalScore = Math.min(100, Math.max(0, Math.round(postDiceScore)));
 
-  // Determine KTU Grade
-  let grade = "F";
-  if (finalScore >= 90) grade = "O";
-  else if (finalScore >= 80) grade = "A+";
-  else if (finalScore >= 70) grade = "A";
-  else if (finalScore >= 60) grade = "B+";
-  else if (finalScore >= 50) grade = "B";
-  else if (finalScore >= 45) grade = "C";
-  else if (finalScore >= 40) grade = "P";
-  else grade = "F";
+  const grade = gradeForScore(finalScore);
 
   const avgFillRatio = totalFillRatioSum / pagesList.length;
 
@@ -186,5 +177,40 @@ export function evaluateBooklet(pagesList, examinerMood, diceRoll = 6) {
       totalPages: pagesList.length
     },
     examinerMood
+  };
+}
+
+function gradeForScore(score) {
+  return score >= 90 ? 'O' : score >= 80 ? 'A+' : score >= 70 ? 'A'
+    : score >= 60 ? 'B+' : score >= 50 ? 'B' : score >= 45 ? 'C' : score >= 40 ? 'P' : 'F';
+}
+
+// Apply this once, after the complete document and moderation roll are final.
+export function applyBorderlineOutcome(result, random = Math.random) {
+  if (!result || !result.breakdown.length || result.borderlineChecked) return result;
+  const borderlineMode = random() < 0.2;
+  const totalMarks = borderlineMode ? 35 + Math.floor(random() * 5) : result.totalMarks;
+  return {
+    ...result, borderlineChecked: true, borderlineMode,
+    moderationMarks: result.totalMarks,
+    totalMarks, grade: gradeForScore(totalMarks), isPassed: totalMarks >= 40,
+    remarks: borderlineMode
+      ? [`Borderline verdict: ${totalMarks}/100. Revaluation in this mode returns 39/100.`, ...result.remarks]
+      : result.remarks
+  };
+}
+
+// Revaluation adjusts only the final total; original region marks remain intact.
+export function revalueResult(result, random = Math.random) {
+  if (!result || result.revaluation || !result.breakdown.length || result.totalMarks >= result.maxMarks) return result;
+  const previousMarks = result.totalMarks;
+  const unchanged = !result.borderlineMode && random() < 0.65;
+  const minimumHigherScore = Math.floor(previousMarks) + 1;
+  const availableScores = result.maxMarks - minimumHigherScore + 1;
+  const totalMarks = result.borderlineMode ? 39 : unchanged ? previousMarks
+    : Math.min(result.maxMarks, minimumHigherScore + Math.floor(random() * availableScores));
+  return {
+    ...result, totalMarks, grade: gradeForScore(totalMarks), isPassed: totalMarks >= 40,
+    revaluation: { previousMarks, changed: totalMarks > previousMarks, attempt: (result.revaluation?.attempt || 0) + 1 }
   };
 }

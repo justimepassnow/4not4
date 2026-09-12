@@ -19,7 +19,7 @@
     </nav>
     <div class="sidebar-note"><strong>A little campus humour.</strong><p>An independent, satirical simulator inspired by the valuation camp.</p><span>Not affiliated with KTU</span></div>
   </aside>
-  <div id="app" data-view="dashboard">
+  <div id="app" data-view="dashboard" data-document="empty">
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-left">
@@ -30,6 +30,20 @@
         </div>
       </div>
 
+    </header>
+
+    <section class="page-heading" id="workspace">
+      <div>
+        <div class="eyebrow" id="pageEyebrow">EXAMINATION / VALUATION</div>
+        <h2 id="pageHeadingTitle">Valuation dashboard</h2>
+        <p id="pageHeadingDesc">Upload your sheet and see how you did.</p>
+      </div>
+
+    </section>
+    <div id="appStatus" class="app-status" role="status" aria-live="polite">Upload a document to value.</div>
+    <!-- Examiner Mood Banner & Shift Scrubber -->
+    <section class="examiner-hud-section" id="shiftPanel" aria-label="Examiner shift">
+      <p class="report-note">Shift changes apply to your next upload. Upload again for a new evaluation.</p>
       <!-- Camp Clock & Valuation Time HUD -->
       <div class="camp-clock-card">
         <div class="clock-top">
@@ -42,19 +56,7 @@
           <button id="simTimeToggleBtn" class="pill-btn">Simulate Shift</button>
         </div>
       </div>
-    </header>
 
-    <section class="page-heading" id="workspace">
-      <div>
-        <div class="eyebrow" id="pageEyebrow">EXAMINATION / VALUATION</div>
-        <h2 id="pageHeadingTitle">Valuation dashboard</h2>
-        <p id="pageHeadingDesc">Upload an answer sheet, explore a shift, and review the marks.</p>
-      </div>
-      <span class="session-badge">● Browser session</span>
-    </section>
-    <div id="appStatus" class="app-status" role="status" aria-live="polite">Preparing sample sheet…</div>
-    <!-- Examiner Mood Banner & Shift Scrubber -->
-    <section class="examiner-hud-section" id="shiftPanel" aria-label="Examiner shift">
       <div class="time-scrubber-row" id="scrubberContainer" style="display: none;">
         <span class="scrub-label">⏰ Scrub Valuation Shift:</span>
         <input type="range" id="timeSlider" min="480" max="1320" step="5" value="750" class="custom-slider" aria-label="Simulated examiner time" />
@@ -107,14 +109,22 @@
         <div class="toolbar-card" id="uploadPanel"><h2 class="panel-title">Answer sheets</h2>
 
           <div class="upload-group">
-            <label for="imageUploadInput" class="upload-btn">
-              <span>Upload image or PDF</span>
-              <input type="file" id="imageUploadInput" accept="image/*,application/pdf,.pdf" />
-            </label>
-            <button id="evaluateBtn" class="action-btn">
+            <button id="evaluateBtn" class="action-btn" disabled>
               <span id="evalBtnText">Evaluate sheet</span>
             </button>
           </div>
+        </div>
+
+        <label for="imageUploadInput" class="drop-zone" id="dropZone">
+          <span class="drop-icon" aria-hidden="true">↑</span>
+          <strong>Drag &amp; drop your PDF here</strong>
+          <span>or click to browse · One evaluation per upload</span>
+          <input type="file" id="imageUploadInput" accept="image/*,application/pdf,.pdf" aria-label="Upload a PDF or answer sheet image" />
+        </label>
+
+        <div id="reactionPanel" class="reaction-panel" hidden>
+          <div id="reactionLoading" class="reaction-loading" role="status" aria-live="polite" hidden></div>
+          <img id="unchangedMeme" class="unchanged-meme" alt="Absolute KTU — hands raised in acceptance" hidden />
         </div>
 
         <!-- PDF Multi-Page Navigation Bar (visible for PDFs) -->
@@ -132,16 +142,6 @@
 
         <!-- Canvas Display -->
         <div class="canvas-wrapper">
-          <div class="canvas-overlay-controls">
-            <label class="toggle-control">
-              <input type="checkbox" id="toggleRedPen" checked />
-              <span class="toggle-text">Teacher red ink</span>
-            </label>
-            <label class="toggle-control">
-              <input type="checkbox" id="toggleBoxes" />
-              <span class="toggle-text">Detected regions</span>
-            </label>
-          </div>
           <div class="canvas-container" id="canvasContainer">
             <canvas id="mainCanvas"></canvas>
             <div id="loadingOverlay" class="loading-overlay" style="display: none;">
@@ -158,33 +158,36 @@
             </div>
           </div>
         </div>
+          <details class="viewer-options"><summary>Display options</summary>
+          <div class="canvas-overlay-controls">
+            <label class="toggle-control">
+              <input type="checkbox" id="toggleRedPen" checked />
+              <span class="toggle-text">Teacher red ink</span>
+            </label>
+            <label class="toggle-control">
+              <input type="checkbox" id="toggleBoxes" />
+              <span class="toggle-text">Detected regions</span>
+            </label>
+          </div>
+          </details>
       </section>
 
       <!-- Right Column: Official KTU Marksheet -->
       <aside class="results-column">
         <div class="marksheet-card" id="marksheetCard">
           <div class="marksheet-header">
-            <div class="univ-sub">VALUATION SUMMARY</div>
-            <h2 class="marksheet-title">Your valuation report</h2>
-            <div class="bundle-id">Full document · Simulated marks</div>
+
+            <h2 class="marksheet-title">Your result</h2>
+            <div class="bundle-id">Full document score</div>
           </div>
 
-          <!-- Valuation Moderation Dice Roll Card -->
-          <div class="dice-card" id="diceCard">
-            <div class="dice-header">
-              <span class="dice-badge">🎲 MODERATION DICE ROLL</span>
-            </div>
-            <div class="dice-body">
-              <div class="dice-face" id="diceFace">🎲</div>
-              <div class="dice-details">
-                <div class="dice-title" id="diceTitle">Awaiting full scrutiny…</div>
-                <div class="dice-sub" id="diceSub">High roll (4-6) preserves marks; low roll (1-3) brutally chops them!</div>
-              </div>
-            </div>
+          <div class="document-empty">
+            <span aria-hidden="true">↑</span>
+            <h3>Upload a document to value</h3>
+            <p>Your score, dice roll, and revaluation option will appear here.</p>
           </div>
-
           <!-- Final Grade Banner -->
-          <p id="scoreExplanation" class="report-note"></p>
+
           <div class="grade-banner" id="gradeBanner">
             <div class="grade-circle" id="gradeBadge">—</div>
             <div class="grade-info">
@@ -193,6 +196,30 @@
             </div>
           </div>
 
+          <section id="revaluationStatus" class="revaluation-outcome" role="status" aria-live="polite" aria-atomic="true" hidden>
+            <span class="outcome-label">REVALUATION RESULT</span>
+            <h3 id="revaluationOutcomeTitle"></h3>
+            <div id="revaluationOutcomeScore" class="outcome-score"></div>
+            <p id="revaluationOutcomeNote"></p>
+          </section>
+          <!-- Valuation Moderation Dice Roll Card -->
+          <div class="dice-card" id="diceCard">
+            <div class="dice-header">
+              <span class="dice-badge">ORIGINAL DICE ROLL</span>
+            </div>
+            <div class="dice-body">
+              <div class="dice-face" id="diceFace" aria-label="No dice result">—</div>
+              <div class="dice-details">
+                <div class="dice-title" id="diceTitle">Waiting for evaluation</div>
+                <div class="dice-sub" id="diceSub">The dice rolls once after your document has been checked.</div>
+              </div>
+            </div>
+          </div>
+
+          <details class="report-details">
+            <summary>View valuation details</summary>
+            <div class="details-content">
+              <p id="scoreExplanation" class="report-note"></p>
           <!-- Physical Paper Metrics -->
           <div class="metrics-grid">
             <div class="metric-box">
@@ -241,10 +268,17 @@
             </div>
           </div>
 
+            </div>
+          </details>
+          <section class="revaluation-section" aria-labelledby="revaluationTitle">
+            <h3 id="revaluationTitle">Revaluation</h3>
+            <p>One attempt per document. Normally: 65% unchanged, 35% higher. Borderline verdicts always return 39.</p>
+            <button id="revaluateBtn" class="action-btn" disabled>Request revaluation</button>
+          </section>
           <!-- KTU Official Footer Stamp -->
           <div class="marksheet-footer">
-            <div class="footer-seal">OFFICIAL VALUATION RECORD</div>
-            <div class="footer-note">Normalised score adjusted for booklet heft and examiner shift.</div>
+            <div class="footer-seal">SIMULATED VALUATION</div>
+            <div class="footer-note">For campus humour only.</div>
           </div>
         </div>
       </aside>

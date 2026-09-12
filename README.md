@@ -86,3 +86,21 @@ Made with ❤️ at TinkerHub Useless Projects
 
 ![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
 ![Static Badge](https://img.shields.io/badge/UselessProjects--26-26?link=https%3A%2F%2Ftinkerhub.org%2Fevents%2F1M8ORET9A1%2Fuseless-projects-3.0)
+
+
+### Revaluation
+Drag a PDF or image onto the upload area, or click to browse. The overview shows upload, the final score, and revaluation. The sheet preview, page navigation, and display options are available only in Answer sheets; expand **View valuation details** for moderation, metrics, remarks, and region marks. Shift controls live in the **Examiner shift** view.
+
+Use **Request revaluation** below the result after evaluation finishes. Each document gets one attempt, with a 65% chance of preserving the total and a 35% chance of drawing a higher total, uniformly in whole-mark steps up to 100. Grade, pass status, and the sheet stamp update together; original region marks remain unchanged. A second attempt is blocked after either outcome. Full marks and documents without detected answers cannot be revalued. Each upload is evaluated once automatically. Further evaluation requires uploading again, including when using the same file. Shift changes apply only to the next upload; they cannot reroll or replace existing marks. Revaluation remains a separate one-time action per upload.
+
+
+The initial screen is empty and asks users to upload a document; no sample is loaded or evaluated automatically. The dice stays still during document checking, then rolls once with a short settling animation. Reduced-motion preferences skip the animation. The revealed face is the same roll used to calculate marks.
+
+Final scores are rounded to whole marks before assigning the grade. An unchanged revaluation displays the Absolute KTU image on the overview.
+
+
+After the final dice roll, each nonempty upload has a 20% chance of a borderline verdict: a whole-number score chosen from 35–39. This special verdict overrides the normal total and guarantees exactly 39 on the single revaluation attempt. Other uploads retain the 65% unchanged / 35% higher revaluation rule. An unchanged result reveals the reaction image after a 2.5-second loading animation and image decoding; starting another upload cancels a pending reveal.
+
+Failed final scores show the “You failed” reaction below the upload area on the overview, with the same 2.5-second reveal. Unchanged revaluation takes priority and shows “Absolute KTU”; a successful revaluation that passes removes the failure image.
+
+If revaluation increases the score but it remains below 40, the overview shows “You still failed” after the same loading animation.
