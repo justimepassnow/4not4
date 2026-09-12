@@ -9,7 +9,7 @@
 
 ### Team Members
 - Team Lead: Akshay Kumar A
-- Member: Anoob B
+- Member: Anoop B
 
 ### Project Description
 A satirical, in-browser answer sheet evaluation software inspired by Kerala KTU valuation memes. Instead of reading handwritten answers, it evaluates papers based on physical ink volume, answer vertical height, flowchart/box presence, and most importantly: the **exact time of evaluation** (pre-lunch hangry hour vs post-chaya nirvana).
